@@ -31,5 +31,6 @@ tmp
 *.sw?
 
 .env
+.env.local
 .env.*
 !.env.example
