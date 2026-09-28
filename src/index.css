@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Keep the original logo legible instead of squeezing it between navigation links. */
+.spotsini-desktop-nav { display: none; }
+@media (min-width: 1536px) {
+  .spotsini-desktop-nav { display: flex; }
+  .spotsini-mobile-nav { display: none; }
+  header > .max-w-7xl { max-width: 1536px; }
+}
+
+@layer base {
+  body {
+    background-color: #F8F9F8;
+    color: #0f172a;
+    font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  }
+}
+
+/* Print Specific Layout for Official Kelurahan Letterhead & Report */
+@media print {
+  body {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    font-size: 11pt;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .print-page-break {
+    page-break-before: always;
+  }
+
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  th, td {
+    border: 1px solid #1e293b !important;
+    padding: 6px 8px !important;
+  }
+
+  th {
+    background-color: #f1f5f9 !important;
+    color: #000000 !important;
+  }
+}
+
+@media screen {
+  .print-only {
+    display: none !important;
+  }
+}

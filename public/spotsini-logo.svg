@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 450" fill="none">
+  <defs>
+    <linearGradient id="spotsiniGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF7A1A" />
+      <stop offset="60%" stop-color="#E05B26" />
+      <stop offset="100%" stop-color="#B84418" />
+    </linearGradient>
+    <linearGradient id="pinGrad" x1="20%" y1="10%" x2="80%" y2="90%">
+      <stop offset="0%" stop-color="#FFA050" />
+      <stop offset="50%" stop-color="#E8642A" />
+      <stop offset="100%" stop-color="#AF3810" />
+    </linearGradient>
+  </defs>
+
+  <!-- House Outline -->
+  <path d="M 250 50 L 440 205 L 395 205 L 395 380 L 105 380 L 105 205 L 60 205 Z" 
+        stroke="url(#spotsiniGrad)" 
+        stroke-width="26" 
+        stroke-linecap="round" 
+        stroke-linejoin="round" 
+        fill="none" />
+
+  <!-- Inner Soft Accent Circle -->
+  <circle cx="230" cy="275" r="95" fill="#FFE6D6" opacity="0.4" />
+
+  <!-- Map Pin / Search Motif -->
+  <!-- Outer Pin Arc & Tip -->
+  <path d="M 230 155 C 295 155 345 205 345 270 C 345 320 305 365 255 405 L 230 425 L 205 405 C 160 368 120 320 120 270 C 120 205 170 155 230 155 Z" 
+        stroke="url(#pinGrad)" 
+        stroke-width="24" 
+        stroke-linecap="round" 
+        stroke-linejoin="round" 
+        fill="none" />
+
+  <!-- Inner Search Ring -->
+  <circle cx="230" cy="265" r="52" 
+          stroke="url(#pinGrad)" 
+          stroke-width="24" 
+          fill="none" />
+
+  <!-- Magnifying Glass Handle / Accent Line -->
+  <path d="M 268 302 L 315 350" 
+        stroke="url(#pinGrad)" 
+        stroke-width="24" 
+        stroke-linecap="round" />
+</svg>
