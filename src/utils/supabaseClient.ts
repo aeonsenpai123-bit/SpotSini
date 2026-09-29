@@ -178,11 +178,25 @@ export function getNotificationPermissionStatus(): NotificationStatus {
     };
   }
 
-  const stored = localStorage.getItem(NOTIFICATION_STORAGE_KEY);
+  let isAllowedInStorage = false;
+  try {
+    const stored = localStorage.getItem(NOTIFICATION_STORAGE_KEY);
+    isAllowedInStorage = stored === 'true';
+  } catch (e) {
+    // Sandbox or private mode storage restriction
+  }
+
+  let permission: 'granted' | 'denied' | 'default' = 'default';
+  try {
+    permission = (Notification?.permission as any) || 'default';
+  } catch (e) {
+    // ignore
+  }
+
   return {
     supported: true,
-    permission: Notification.permission as 'granted' | 'denied' | 'default',
-    isAllowedInStorage: stored === 'true',
+    permission,
+    isAllowedInStorage,
   };
 }
 
@@ -195,7 +209,9 @@ export async function requestNotificationPermission(): Promise<{
   status: 'granted' | 'denied' | 'default' | 'unsupported';
 }> {
   if (typeof window === 'undefined' || !('Notification' in window)) {
-    localStorage.setItem(NOTIFICATION_STORAGE_KEY, 'false');
+    try {
+      localStorage.setItem(NOTIFICATION_STORAGE_KEY, 'false');
+    } catch (e) {}
     return { granted: false, status: 'unsupported' };
   }
 
@@ -203,8 +219,10 @@ export async function requestNotificationPermission(): Promise<{
     const permission = await Notification.requestPermission();
     const granted = permission === 'granted';
 
-    // Persist choice in local storage
-    localStorage.setItem(NOTIFICATION_STORAGE_KEY, granted ? 'true' : 'false');
+    // Persist choice in local storage safely
+    try {
+      localStorage.setItem(NOTIFICATION_STORAGE_KEY, granted ? 'true' : 'false');
+    } catch (e) {}
 
     // Attempt to persist subscription / device state in Supabase
     try {
