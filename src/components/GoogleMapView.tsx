@@ -54,11 +54,15 @@ export const GoogleMapView: React.FC<GoogleMapViewProps> = ({
     }
   };
 
-  // Initialize Google Maps
+  // Initialize Google Maps with IntersectionObserver & DOM guard
   useEffect(() => {
     let isMounted = true;
+    let observer: IntersectionObserver | null = null;
 
     async function initMap() {
+      // Guard: Ensure component is mounted and container DOM element exists
+      if (!isMounted || !mapRef.current) return;
+
       try {
         setLoading(true);
         setLoadError(null);
@@ -72,7 +76,10 @@ export const GoogleMapView: React.FC<GoogleMapViewProps> = ({
           return;
         }
 
-        if (!mapRef.current) return;
+        // Guard: Re-check that container element is valid and mounted after async loader completes
+        if (!isMounted || !mapRef.current || !(mapRef.current instanceof Element)) {
+          return;
+        }
 
         if (!googleMapInstance.current) {
           const map = new google.maps.Map(mapRef.current, {
@@ -98,6 +105,7 @@ export const GoogleMapView: React.FC<GoogleMapViewProps> = ({
 
         const map = googleMapInstance.current;
         const infoWindow = infoWindowRef.current;
+        if (!map || !infoWindow) return;
 
         // Clear existing markers
         Object.values(markersRef.current).forEach(m => m.setMap(null));
@@ -203,10 +211,29 @@ export const GoogleMapView: React.FC<GoogleMapViewProps> = ({
       }
     }
 
-    initMap();
+    // IntersectionObserver to initialize map when container is in viewport
+    if (typeof window !== 'undefined' && 'IntersectionObserver' in window) {
+      observer = new IntersectionObserver((entries) => {
+        const entry = entries[0];
+        if (entry && entry.isIntersecting) {
+          if (mapRef.current) {
+            observer?.unobserve(mapRef.current);
+          }
+          initMap();
+        }
+      }, { rootMargin: '100px', threshold: 0.1 });
+
+      if (mapRef.current) observer.observe(mapRef.current);
+    } else {
+      initMap();
+    }
 
     return () => {
       isMounted = false;
+      if (observer) {
+        if (mapRef.current) observer.unobserve(mapRef.current);
+        observer.disconnect();
+      }
     };
   }, [filteredBusinesses]);
 
