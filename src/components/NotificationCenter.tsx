@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppNotification } from '../types/business';
-import { Bell, Check, ExternalLink, X, Tag, Coffee, Sparkles } from 'lucide-react';
+import { Bell, Check, ExternalLink, X, Sparkles, BellRing } from 'lucide-react';
+import { getNotificationPermissionStatus, requestNotificationPermission } from '../utils/supabaseClient';
 
 interface NotificationCenterProps {
   notifications: AppNotification[];
@@ -15,6 +16,20 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   onClose,
   onNotificationClick
 }) => {
+  const [notifState, setNotifState] = useState<'default' | 'granted' | 'denied' | 'unsupported'>('default');
+
+  useEffect(() => {
+    if (isOpen) {
+      const status = getNotificationPermissionStatus();
+      setNotifState(status.permission);
+    }
+  }, [isOpen]);
+
+  const handleRequestPermission = async () => {
+    const res = await requestNotificationPermission();
+    setNotifState(res.status);
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -27,6 +42,26 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
         <button onClick={onClose} className="p-1 rounded-lg hover:bg-white/10 text-white">
           <X className="w-4 h-4" />
         </button>
+      </div>
+
+      {/* Supabase Notification Permission Status Bar */}
+      <div className="p-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-xs">
+        <div className="flex items-center gap-2">
+          <BellRing className={`w-3.5 h-3.5 ${notifState === 'granted' ? 'text-emerald-600' : 'text-amber-500'}`} />
+          <span className="text-[11px] font-semibold text-slate-700">
+            {notifState === 'granted' ? 'Notifikasi Real-Time Aktif' : 'Izin Notifikasi Usaha'}
+          </span>
+        </div>
+
+        {notifState !== 'granted' && notifState !== 'unsupported' && (
+          <button
+            type="button"
+            onClick={handleRequestPermission}
+            className="px-2.5 py-1 rounded-lg bg-[#134E39] hover:bg-[#0E3B2B] text-white text-[10px] font-extrabold shadow-xs transition-colors"
+          >
+            Aktifkan
+          </button>
+        )}
       </div>
 
       <div className="max-h-96 overflow-y-auto divide-y divide-slate-100 p-2">

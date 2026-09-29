@@ -2,7 +2,8 @@
  * WhatsApp integration utilities for SpotSiNi according to PRD Section 11
  */
 
-export const ADMIN_WHATSAPP_NUMBER = '6281287347903';
+export const ADMIN_WHATSAPP_NUMBER = '6287881145183';
+export const ADMIN_WHATSAPP_DISPLAY = '0878-8114-5183';
 
 /**
  * Normalizes an Indonesian phone number to international WhatsApp format (starts with 62)

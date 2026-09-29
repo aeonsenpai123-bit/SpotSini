@@ -6,7 +6,7 @@ import { getBusinessWhatsAppUrl } from '../utils/whatsapp';
 import { calculateDistanceMeters, getUserFavorites, toggleFavorite } from '../utils/reviewService';
 import { 
   MessageCircle, CheckCircle, Search, ChevronRight, ChevronLeft, 
-  MapPin, Star, Heart, Flame, Award, Navigation 
+  MapPin, Star, Heart, Flame, Award, Navigation, ArrowLeft 
 } from 'lucide-react';
 
 interface CatalogProps {
@@ -22,6 +22,7 @@ interface CatalogProps {
   onLocateOnMap?: (biz: Business) => void;
   currentUser?: User | null;
   onRequireAuth?: () => void;
+  onBackToHome?: () => void;
 }
 
 export const Catalog: React.FC<CatalogProps> = ({
@@ -36,7 +37,8 @@ export const Catalog: React.FC<CatalogProps> = ({
   onSelectBusiness,
   onLocateOnMap,
   currentUser,
-  onRequireAuth
+  onRequireAuth,
+  onBackToHome
 }) => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [radiusFilter, setRadiusFilter] = useState<'Semua' | '1km' | '5km' | '10km'>('Semua');
@@ -121,7 +123,25 @@ export const Catalog: React.FC<CatalogProps> = ({
   ];
 
   return (
-    <section id="katalog" className="py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section id="katalog" className="py-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Back to Home Navigation Bar */}
+      {onBackToHome && (
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={onBackToHome}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white hover:bg-slate-100 border border-slate-200 text-slate-800 text-xs sm:text-sm font-bold shadow-xs transition-all active:scale-95 group"
+          >
+            <ArrowLeft className="w-4 h-4 text-emerald-800 transition-transform group-hover:-translate-x-1" />
+            <span>Kembali ke Beranda</span>
+          </button>
+
+          <span className="text-xs text-slate-500 font-medium">
+            Menampilkan <strong className="text-slate-900 font-bold">{filtered.length}</strong> usaha mikro terverifikasi
+          </span>
+        </div>
+      )}
+
       <div className="flex flex-col lg:flex-row gap-8 items-start">
 
         {/* LEFT SIDEBAR: Filters */}

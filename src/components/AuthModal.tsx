@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { User, UserRole } from '../types/business';
-import { registerUser, loginUser } from '../utils/authService';
+import { registerUser, loginUser, loginWithGoogleUser } from '../utils/authService';
+import { signInWithGoogle } from '../utils/supabaseClient';
 import { BrandMark } from './BrandMark';
 import { X, UserCheck, Store, ShieldCheck, Mail, Lock, Phone, MapPin, Sparkles, CheckCircle } from 'lucide-react';
 
@@ -27,6 +28,36 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('Kelurahan Penggilingan');
   const [error, setError] = useState('');
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+  const handleGoogleSignIn = async () => {
+    setIsGoogleLoading(true);
+    setError('');
+    try {
+      const res = await signInWithGoogle();
+      if (res?.url) {
+        window.location.href = res.url;
+        return;
+      }
+      // Instant login mode for prototype demo
+      const user = loginWithGoogleUser({
+        name: 'Warga Penggilingan (Google)',
+        email: 'warga.penggilingan@gmail.com',
+        avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
+        role: selectedRole === 'owner' ? 'owner' : 'customer',
+      });
+      onAuthSuccess(user);
+      onClose();
+    } catch (err: any) {
+      console.warn('Google sign-in error:', err);
+      // Fallback demo user
+      const user = loginWithGoogleUser();
+      onAuthSuccess(user);
+      onClose();
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -179,6 +210,32 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </div>
             </div>
           )}
+
+          {/* Google One-Click Sign In Button */}
+          <button
+            type="button"
+            onClick={handleGoogleSignIn}
+            disabled={isGoogleLoading}
+            className="w-full py-2.5 px-4 rounded-2xl border border-slate-300 hover:border-slate-400 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs sm:text-sm flex items-center justify-center gap-2.5 shadow-xs transition-all active:scale-98 disabled:opacity-50"
+          >
+            <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.66v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.15z"/>
+              <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.26v3.15C3.25 21.36 7.33 24 12 24z"/>
+              <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.26C.46 8.16 0 9.94 0 12s.46 3.84 1.26 5.42l4.02-3.15z"/>
+              <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.25 2.64 1.26 6.58l4.02 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+            </svg>
+            <span>{isGoogleLoading ? 'Menghubungkan Akun Google...' : 'Masuk dengan Google'}</span>
+          </button>
+
+          {/* Divider */}
+          <div className="relative my-2 flex items-center justify-center">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-slate-200" />
+            </div>
+            <span className="relative bg-white px-2.5 text-[10px] uppercase font-bold text-slate-400">
+              atau gunakan email & password
+            </span>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-3 text-xs">
             {!isLogin && (

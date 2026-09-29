@@ -20,6 +20,8 @@ import { UserDashboard } from './components/UserDashboard';
 import { OwnerDashboard } from './components/OwnerDashboard';
 import { RewardCenter } from './components/RewardCenter';
 import { Footer } from './components/Footer';
+import { NotificationPermissionBanner } from './components/NotificationPermissionBanner';
+import { initRealtimeSubscriptions, sendBrowserNotification } from './utils/supabaseClient';
 
 export const App: React.FC = () => {
   const [businesses, setBusinesses] = useState<Business[]>([]);
@@ -66,7 +68,31 @@ export const App: React.FC = () => {
     };
 
     window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
+
+    // Initialize Supabase Realtime for live ratings and broadcast notifications
+    const unsubscribeRealtime = initRealtimeSubscriptions((payload) => {
+      if (payload.type === 'RATING_UPDATED') {
+        setBusinesses((prev) =>
+          prev.map((b) =>
+            b.id === payload.placeId
+              ? {
+                  ...b,
+                  google_rating: payload.rating,
+                  google_review_count: payload.reviewCount,
+                  rating_avg: payload.rating,
+                }
+              : b
+          )
+        );
+      } else if (payload.type === 'NOTIFICATION_BROADCAST') {
+        sendBrowserNotification(payload.title, { body: payload.message });
+      }
+    });
+
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+      unsubscribeRealtime();
+    };
   }, []);
 
   // Update hash when tab changes
@@ -252,6 +278,7 @@ export const App: React.FC = () => {
               onLocateOnMap={handleLocateOnMap}
               currentUser={currentUser}
               onRequireAuth={() => setIsAuthModalOpen(true)}
+              onBackToHome={() => handleNavigate('beranda')}
             />
           </div>
         )}
@@ -373,6 +400,9 @@ export const App: React.FC = () => {
           onRequireLogin={() => setIsAuthModalOpen(true)}
         />
       )}
+
+      {/* Notification Permission Prompt Aligned with Supabase */}
+      <NotificationPermissionBanner />
     </div>
   );
 };

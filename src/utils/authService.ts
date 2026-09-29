@@ -154,3 +154,44 @@ export function updateUserPoints(userId: string, pointsDelta: number): User | nu
 export function logoutUser(): void {
   setCurrentUser(null);
 }
+
+/**
+ * Handle authentication via Google OAuth (Supabase or direct demo)
+ */
+export function loginWithGoogleUser(customData?: {
+  id?: string;
+  name?: string;
+  email?: string;
+  avatar_url?: string;
+  role?: UserRole;
+}): User {
+  const users = getUsers();
+  const email = customData?.email || 'warga.penggilingan@gmail.com';
+  const name = customData?.name || 'Warga SpotSiNi (Google)';
+  const avatar = customData?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80';
+  
+  const existing = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+  if (existing) {
+    setCurrentUser(existing);
+    return existing;
+  }
+
+  const newGoogleUser: User = {
+    id: customData?.id || `USR-GOOG-${Date.now()}`,
+    name,
+    email,
+    password: 'google_oauth_authenticated',
+    role: customData?.role || 'customer',
+    phone: '0878-8114-5183',
+    location_address: 'Kelurahan Penggilingan (Google Auth)',
+    avatar_url: avatar,
+    points_balance: 100, // Google sign in welcome bonus
+    created_at: new Date().toISOString().slice(0, 10),
+  };
+
+  const updatedUsers = [...users, newGoogleUser];
+  saveUsers(updatedUsers);
+  setCurrentUser(newGoogleUser);
+  return newGoogleUser;
+}
+

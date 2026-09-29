@@ -12,6 +12,7 @@ dist
 dist-ssr
 build
 output
+outputs
 tmp
 .agent
 .deck-build
