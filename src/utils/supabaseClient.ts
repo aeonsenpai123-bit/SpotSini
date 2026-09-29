@@ -4,7 +4,7 @@ import { loginWithGoogleUser, logoutUser } from './authService';
 
 // Supabase configuration from environment variables or project credentials
 const SUPABASE_URL = (import.meta as any).env?.VITE_SUPABASE_URL || 'https://ebcrfgacipzkonybrzbh.supabase.co';
-const SUPABASE_ANON_KEY = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || 'sb_publishable_7I8G_N9P6sVtPIFtva1RSA_T54bl0fwv';
+const SUPABASE_ANON_KEY = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImViY3JmZ2FjaXB6a29ueWJyemJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA2MDc1MzksImV4cCI6MjEwNjE4MzUzOX0.6zfREGZMP9zN65JsLNFjFsb8jQatE0JgL8kSAwN94Vg';
 
 // Create Supabase client instance
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
