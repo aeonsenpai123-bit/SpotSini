@@ -1,4 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
+import { User, UserRole } from '../types/business';
+import { loginWithGoogleUser, logoutUser } from './authService';
 
 // Supabase configuration from environment variables or project credentials
 const SUPABASE_URL = (import.meta as any).env?.VITE_SUPABASE_URL || 'https://ebcrfgacipzkonybrzbh.supabase.co';
@@ -60,7 +62,7 @@ export async function signInWithGoogle(): Promise<{ error: Error | null; url?: s
 }
 
 /**
- * Sign out current session
+ * Sign out current session from Supabase and local app storage
  */
 export async function signOutUser(): Promise<void> {
   try {
@@ -68,6 +70,87 @@ export async function signOutUser(): Promise<void> {
   } catch (err) {
     console.warn('Sign out error:', err);
   }
+  logoutUser();
+}
+
+/**
+ * Synchronizes Supabase auth user with local database schema & storage
+ */
+export async function syncSupabaseUserProfile(sessionUser: any): Promise<User> {
+  const metadata = sessionUser.user_metadata || {};
+  const email = sessionUser.email || '';
+  const name = metadata.full_name || metadata.name || email.split('@')[0] || 'Warga SpotSiNi';
+  const avatar = metadata.avatar_url || metadata.picture || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80';
+  const role: UserRole = (metadata.role as UserRole) || 'customer';
+
+  // 1. Sync with Supabase public.profiles or public.users table if accessible
+  try {
+    const profilePayload = {
+      id: sessionUser.id,
+      email,
+      full_name: name,
+      avatar_url: avatar,
+      role,
+      updated_at: new Date().toISOString()
+    };
+    await (supabase.from('profiles').upsert(profilePayload, { onConflict: 'id' }) as unknown as Promise<any>);
+  } catch (err) {
+    // Non-blocking in case profiles table doesn't exist
+  }
+
+  // 2. Synchronize with SpotSiNi application User storage
+  const appUser = loginWithGoogleUser({
+    id: sessionUser.id,
+    name,
+    email,
+    avatar_url: avatar,
+    role
+  });
+
+  return appUser;
+}
+
+/**
+ * Listens to Supabase Auth state changes and initial session
+ * Handles OAuth callback and automatic profile syncing
+ */
+export function initAuthSubscription(
+  onUserChange: (user: User | null) => void
+): () => void {
+  // 1. Fetch initial session on startup
+  supabase.auth.getSession().then(async ({ data: { session } }) => {
+    if (session?.user) {
+      try {
+        const synced = await syncSupabaseUserProfile(session.user);
+        onUserChange(synced);
+      } catch (err) {
+        console.warn('Error syncing initial user session:', err);
+      }
+    }
+  }).catch((err) => {
+    console.warn('Error fetching Supabase session:', err);
+  });
+
+  // 2. Listen to ongoing auth state changes (OAuth callback, sign in, sign out)
+  const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    console.log(`🔐 Supabase Auth Event: ${event}`);
+
+    if (session?.user && (event === 'SIGNED_IN' || event === 'USER_UPDATED' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION')) {
+      try {
+        const synced = await syncSupabaseUserProfile(session.user);
+        onUserChange(synced);
+      } catch (err) {
+        console.warn('Error syncing OAuth user profile:', err);
+      }
+    } else if (event === 'SIGNED_OUT') {
+      logoutUser();
+      onUserChange(null);
+    }
+  });
+
+  return () => {
+    subscription.unsubscribe();
+  };
 }
 
 /**

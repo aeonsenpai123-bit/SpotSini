@@ -21,7 +21,7 @@ import { OwnerDashboard } from './components/OwnerDashboard';
 import { RewardCenter } from './components/RewardCenter';
 import { Footer } from './components/Footer';
 import { NotificationPermissionBanner } from './components/NotificationPermissionBanner';
-import { initRealtimeSubscriptions, sendBrowserNotification } from './utils/supabaseClient';
+import { initRealtimeSubscriptions, sendBrowserNotification, initAuthSubscription, signOutUser } from './utils/supabaseClient';
 
 export const App: React.FC = () => {
   const [businesses, setBusinesses] = useState<Business[]>([]);
@@ -49,18 +49,28 @@ export const App: React.FC = () => {
     const data = loadBusinesses();
     setBusinesses(data);
 
-    // Read initial URL hash
+    // 1. Check if returning from OAuth redirect with access_token or code
+    const isOAuthCallback =
+      window.location.hash.includes('access_token=') ||
+      window.location.hash.includes('error_description=') ||
+      window.location.search.includes('code=');
+
+    // 2. Read initial URL hash ONLY if not an OAuth callback to preserve tokens for Supabase
     const validTabs = [
       'beranda', 'katalog', 'peta', 'reward-center', 
       'dashboard-user', 'dashboard-owner', 'tentang', 
       'kontak', 'cetak', 'admin'
     ];
-    const hash = window.location.hash.replace('#', '');
-    if (validTabs.includes(hash)) {
-      setActiveTab(hash);
+    if (!isOAuthCallback) {
+      const hash = window.location.hash.replace('#', '');
+      if (validTabs.includes(hash)) {
+        setActiveTab(hash);
+      }
     }
 
     const handleHashChange = () => {
+      // Don't treat OAuth tokens as a tab name
+      if (window.location.hash.includes('access_token=')) return;
       const current = window.location.hash.replace('#', '');
       if (validTabs.includes(current)) {
         setActiveTab(current);
@@ -69,7 +79,24 @@ export const App: React.FC = () => {
 
     window.addEventListener('hashchange', handleHashChange);
 
-    // Initialize Supabase Realtime for live ratings and broadcast notifications
+    // 3. Connect Supabase Auth State Change Listener & Session Initializer
+    const unsubscribeAuth = initAuthSubscription((user) => {
+      if (user) {
+        setCurrentUser(user);
+        setNotifications(getNotifications(user.id));
+
+        // If URL has OAuth callback tokens, clean up URL hash smoothly to #beranda
+        if (window.location.hash.includes('access_token=') || window.location.search.includes('code=')) {
+          window.history.replaceState(null, '', window.location.pathname + '#beranda');
+          setActiveTab('beranda');
+        }
+      } else {
+        setCurrentUser(null);
+        setNotifications(getNotifications());
+      }
+    });
+
+    // 4. Initialize Supabase Realtime for live ratings and broadcast notifications
     const unsubscribeRealtime = initRealtimeSubscriptions((payload) => {
       if (payload.type === 'RATING_UPDATED') {
         setBusinesses((prev) =>
@@ -92,6 +119,7 @@ export const App: React.FC = () => {
     return () => {
       window.removeEventListener('hashchange', handleHashChange);
       unsubscribeRealtime();
+      unsubscribeAuth();
     };
   }, []);
 
@@ -123,8 +151,8 @@ export const App: React.FC = () => {
     setNotifications(getNotifications(user.id));
   };
 
-  const handleLogout = () => {
-    logoutUser();
+  const handleLogout = async () => {
+    await signOutUser();
     setCurrentUser(null);
     setNotifications(getNotifications());
     handleNavigate('beranda');
