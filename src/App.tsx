@@ -408,6 +408,7 @@ export const App: React.FC = () => {
         currentUser={currentUser}
         onOpenReview={handleOpenReview}
         onRequireAuth={() => setIsAuthModalOpen(true)}
+        onUserUpdated={(u) => setCurrentUser(u)}
       />
 
       {/* Auth Modal (Register / Login / Demo Accounts) */}

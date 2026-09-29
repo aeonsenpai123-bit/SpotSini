@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { User, Business, UserVoucher, Review } from '../types/business';
-import { getUserVouchers, saveUserVouchers } from '../utils/rewardService';
+import { User, Business, UserVoucher, Review, PointTransaction } from '../types/business';
+import { getUserVouchers, saveUserVouchers, getPointTransactions } from '../utils/rewardService';
 import { getReviewsForBusiness, getUserFavorites, toggleFavorite } from '../utils/reviewService';
 
 interface UserDashboardProps {
@@ -16,8 +16,9 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
   onNavigate,
   onSelectBusiness
 }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'vouchers' | 'reviews' | 'favorites' | 'profile'>('vouchers');
+  const [activeSubTab, setActiveSubTab] = useState<'vouchers' | 'rewards' | 'favorites' | 'profile'>('vouchers');
   const [userVouchers, setUserVouchers] = useState<UserVoucher[]>(() => getUserVouchers(currentUser.id));
+  const [transactions, setTransactions] = useState<PointTransaction[]>(() => getPointTransactions(currentUser.id));
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [favoriteIds, setFavoriteIds] = useState<string[]>(() => getUserFavorites(currentUser.id));
 
@@ -126,6 +127,24 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
           <span>Dompet Voucher</span>
           <span className="ml-1 text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold">
             {userVouchers.length}
+          </span>
+        </button>
+
+        <button
+          onClick={() => {
+            setTransactions(getPointTransactions(currentUser.id));
+            setActiveSubTab('rewards');
+          }}
+          className={`px-4 py-2.5 text-sm font-semibold rounded-t-xl transition-colors border-b-2 flex items-center gap-2 whitespace-nowrap ${
+            activeSubTab === 'rewards'
+              ? 'border-emerald-600 text-emerald-700 bg-emerald-50/50'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+          }`}
+        >
+          <span>🪙</span>
+          <span>Riwayat Poin & Reward</span>
+          <span className="ml-1 text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold">
+            {transactions.length}
           </span>
         </button>
 
@@ -255,6 +274,99 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
                         </div>
                       )}
                     </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Sub-tab: Riwayat Poin & Aktivitas Reward */}
+      {activeSubTab === 'rewards' && (
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">Riwayat Poin & Aktivitas Reward</h2>
+              <p className="text-sm text-gray-500">
+                Catatan perolehan reward dari ulasan Google Maps terverifikasi, verifikasi kunjungan, dan penukaran voucher.
+              </p>
+            </div>
+            <button
+              onClick={() => onNavigate('reward-center')}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-900 text-sm font-bold rounded-xl shadow-sm transition-all"
+            >
+              <span>Tukar Poin Sekarang →</span>
+            </button>
+          </div>
+
+          {/* Quick Balance Summary Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200 shadow-2xs">
+              <span className="text-xs font-bold text-amber-800 uppercase tracking-wider block mb-1">Saldo Poin Aktif</span>
+              <span className="text-2xl font-black text-amber-900">🪙 {currentUser.points_balance} Poin</span>
+            </div>
+            <div className="p-4 rounded-2xl bg-emerald-50/80 border border-emerald-200 shadow-2xs">
+              <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider block mb-1">Aktivitas Tercatat</span>
+              <span className="text-2xl font-black text-emerald-900">{transactions.length} Transaksi</span>
+            </div>
+            <div className="p-4 rounded-2xl bg-teal-50/80 border border-teal-200 shadow-2xs">
+              <span className="text-xs font-bold text-teal-800 uppercase tracking-wider block mb-1">Status Pengguna</span>
+              <span className="text-2xl font-black text-teal-900">Warga Terverifikasi</span>
+            </div>
+          </div>
+
+          {transactions.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center shadow-sm">
+              <div className="w-16 h-16 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">
+                🪙
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-1">Belum Ada Riwayat Poin</h3>
+              <p className="text-sm text-gray-500 max-w-md mx-auto mb-6">
+                Sinkronkan ulasan Google Maps Anda atau berikan ulasan kunjungan lokal untuk mulai mengumpulkan reward!
+              </p>
+              <button
+                onClick={() => onNavigate('katalog')}
+                className="px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-medium text-sm rounded-xl shadow transition-colors"
+              >
+                Jelajahi Usaha Mikro
+              </button>
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden divide-y divide-gray-100">
+              {transactions.map((tx) => (
+                <div key={tx.id} className="p-4 sm:p-5 flex items-center justify-between gap-4 hover:bg-slate-50/70 transition-colors">
+                  <div className="flex items-center gap-3.5">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold shadow-xs ${
+                      tx.points_change > 0
+                        ? tx.activity === 'BONUS'
+                          ? 'bg-amber-100 text-amber-700 border border-amber-300'
+                          : 'bg-emerald-100 text-emerald-700 border border-emerald-300'
+                        : 'bg-rose-100 text-rose-700 border border-rose-300'
+                    }`}>
+                      {tx.activity === 'BONUS' ? '⭐' : tx.points_change > 0 ? '🪙' : '🎟️'}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs sm:text-sm font-bold text-slate-900">{tx.description}</p>
+                        {tx.activity === 'BONUS' && (
+                          <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-bold border border-amber-200">
+                            Google Maps Verified
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        {new Date(tx.created_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="text-right shrink-0">
+                    <span className={`text-sm sm:text-base font-black ${
+                      tx.points_change > 0 ? 'text-emerald-600' : 'text-rose-600'
+                    }`}>
+                      {tx.points_change > 0 ? `+${tx.points_change}` : tx.points_change} Poin
+                    </span>
                   </div>
                 </div>
               ))}

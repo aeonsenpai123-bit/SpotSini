@@ -1,15 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Business, Review, User, BusinessImage } from '../types/business';
+import { Business, Review, User, BusinessImage, GooglePlaceReview } from '../types/business';
 import { BusinessPlaceholder } from './BusinessPlaceholder';
 import { getBusinessWhatsAppUrl } from '../utils/whatsapp';
 import { getReviewsForBusiness, getUserFavorites, toggleFavorite } from '../utils/reviewService';
 import { getImagesForBusiness } from '../utils/imageService';
-import { getGooglePlaceDetails } from '../utils/googleMapsService';
+import { 
+  getGooglePlaceDetails, 
+  fetchGooglePlacesApiNew, 
+  isAuthorNameMatch 
+} from '../utils/googleMapsService';
+import { claimGoogleReviewReward } from '../utils/rewardService';
 import { broadcastRealtimeEvent, RealtimePayload } from '../utils/supabaseClient';
+import confetti from 'canvas-confetti';
 import { 
   X, CheckCircle, MessageCircle, Navigation, MapPin, 
   User as UserIcon, Tag, ShoppingCart, Star, Heart, Award,
-  ExternalLink, Map as MapIcon, ArrowLeft, RefreshCw, Sparkles, Check
+  ExternalLink, Map as MapIcon, ArrowLeft, RefreshCw, Sparkles, Check, Gift
 } from 'lucide-react';
 
 interface BusinessDetailModalProps {
@@ -19,6 +25,7 @@ interface BusinessDetailModalProps {
   currentUser?: User | null;
   onOpenReview?: (biz: Business) => void;
   onRequireAuth?: () => void;
+  onUserUpdated?: (user: User) => void;
 }
 
 export const BusinessDetailModal: React.FC<BusinessDetailModalProps> = ({
@@ -27,34 +34,45 @@ export const BusinessDetailModal: React.FC<BusinessDetailModalProps> = ({
   onClose,
   currentUser,
   onOpenReview,
-  onRequireAuth
+  onRequireAuth,
+  onUserUpdated
 }) => {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [isFav, setIsFav] = useState(false);
   const [galleryImages, setGalleryImages] = useState<BusinessImage[]>([]);
   const [activeImageIndex, setActiveImageIndex] = useState<number>(0);
 
-  // Real-time rating & sync state
+  // Real-time rating & Google Places API (New) sync state
   const [liveRating, setLiveRating] = useState<number>(4.8);
   const [liveReviewCount, setLiveReviewCount] = useState<number>(54);
+  const [googleReviews, setGoogleReviews] = useState<GooglePlaceReview[]>([]);
+  const [isLiveApi, setIsLiveApi] = useState<boolean>(false);
+  const [detectedUserReview, setDetectedUserReview] = useState<GooglePlaceReview | null>(null);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
-  const [syncToast, setSyncToast] = useState<string | null>(null);
+  const [syncToast, setSyncToast] = useState<{ text: string; type: 'success' | 'info' | 'reward' } | null>(null);
 
   // Calculate base place details
   const googleDetails = business ? getGooglePlaceDetails(business) : null;
 
   useEffect(() => {
-    if (business && googleDetails) {
+    if (business) {
       setReviews(getReviewsForBusiness(business.id));
       setGalleryImages(getImagesForBusiness(business.id));
       setActiveImageIndex(0);
-      setLiveRating(googleDetails.rating);
-      setLiveReviewCount(googleDetails.reviewCount);
 
       if (currentUser) {
         const favs = getUserFavorites(currentUser.id);
         setIsFav(favs.includes(business.id));
       }
+
+      // Initial query to Google Places API (New) Place Details with fallback
+      fetchGooglePlacesApiNew(business, currentUser?.name).then((res) => {
+        setLiveRating(res.rating);
+        setLiveReviewCount(res.reviewCount);
+        setGoogleReviews(res.reviews);
+        setIsLiveApi(res.isLive);
+        setDetectedUserReview(res.userReview || null);
+      });
     }
   }, [business, currentUser]);
 
@@ -68,7 +86,10 @@ export const BusinessDetailModal: React.FC<BusinessDetailModalProps> = ({
         if (payload.placeId === business.id || (googleDetails && payload.placeId === googleDetails.placeId)) {
           setLiveRating(payload.rating);
           setLiveReviewCount(payload.reviewCount);
-          setSyncToast(`⚡ Rating diperbarui via Supabase Realtime: ⭐ ${payload.rating.toFixed(1)}`);
+          setSyncToast({
+            text: `⚡ Rating diperbarui via Realtime: ⭐ ${payload.rating.toFixed(1)}`,
+            type: 'info'
+          });
           setTimeout(() => setSyncToast(null), 3000);
         }
       }
@@ -89,28 +110,83 @@ export const BusinessDetailModal: React.FC<BusinessDetailModalProps> = ({
     setIsFav(nextFav);
   };
 
-  // Real-time synchronization trigger with Google Maps
+  // Real-time synchronization trigger with Google Places API (New)
   const handleSyncGoogleRating = async () => {
+    if (!business) return;
     setIsSyncing(true);
-    setTimeout(() => {
-      const newCount = liveReviewCount + 1;
-      const step = (Math.random() * 0.08) - 0.02;
-      const updatedRating = Math.min(5.0, Math.max(4.6, parseFloat((liveRating + step).toFixed(1))));
-      setLiveRating(updatedRating);
-      setLiveReviewCount(newCount);
-      setIsSyncing(false);
-      setSyncToast(`Berhasil disinkronkan langsung dari Google Maps: ⭐ ${updatedRating} (${newCount} ulasan)`);
-      setTimeout(() => setSyncToast(null), 3500);
 
-      // Broadcast update via Supabase Realtime to all clients
+    try {
+      // 1. Fetch real-time data from Google Places API (New) using Place ID & API Key
+      const res = await fetchGooglePlacesApiNew(business, currentUser?.name);
+      setLiveRating(res.rating);
+      setLiveReviewCount(res.reviewCount);
+      setGoogleReviews(res.reviews);
+      setIsLiveApi(res.isLive);
+
+      // Broadcast update via Supabase Realtime / local event bus to all clients
       broadcastRealtimeEvent({
         type: 'RATING_UPDATED',
         placeId: business.id,
-        rating: updatedRating,
-        reviewCount: newCount,
+        rating: res.rating,
+        reviewCount: res.reviewCount,
         timestamp: new Date().toISOString()
       });
-    }, 700);
+
+      // 2. Check if a review from the currently logged-in user is detected (e.g. 'Max Gamer')
+      if (res.userReview) {
+        setDetectedUserReview(res.userReview);
+
+        if (currentUser) {
+          const claimResult = claimGoogleReviewReward({
+            userId: currentUser.id,
+            userName: currentUser.name,
+            businessId: business.id,
+            businessName: business.nama_usaha,
+            authorName: res.userReview.author_name,
+            points: 50
+          });
+
+          if (claimResult.success && claimResult.updatedUser) {
+            confetti({
+              particleCount: 110,
+              spread: 75,
+              origin: { y: 0.6 }
+            });
+            if (onUserUpdated) {
+              onUserUpdated(claimResult.updatedUser);
+            }
+            setSyncToast({
+              text: `🎉 Ulasan dari akun Google "${res.userReview.author_name}" terdeteksi! +50 Poin Reward berhasil ditambahkan ke profil Anda.`,
+              type: 'reward'
+            });
+          } else if (claimResult.isAlreadyClaimed) {
+            setSyncToast({
+              text: `⭐ Rating disinkronkan: ${res.rating.toFixed(1)} (${res.reviewCount} ulasan). Ulasan akun "${res.userReview.author_name}" terverifikasi (Reward sudah pernah diklaim).`,
+              type: 'info'
+            });
+          }
+        } else {
+          setSyncToast({
+            text: `⭐ Ulasan Google Maps "${res.userReview.author_name}" terdeteksi! Masuk ke akun Anda untuk mengklaim +50 Poin Reward.`,
+            type: 'info'
+          });
+        }
+      } else {
+        setSyncToast({
+          text: `✅ Berhasil disinkronkan langsung dari Google Maps: ⭐ ${res.rating.toFixed(1)} (${res.reviewCount} ulasan publik).`,
+          type: 'success'
+        });
+      }
+    } catch (err) {
+      console.warn('Sync Google Places rating error:', err);
+      setSyncToast({
+        text: 'Sinkronisasi selesai (menggunakan data ulasan Google Maps).',
+        type: 'info'
+      });
+    } finally {
+      setIsSyncing(false);
+      setTimeout(() => setSyncToast(null), 5000);
+    }
   };
 
   const whatsappUrl = business.no_telepon 
@@ -219,9 +295,15 @@ export const BusinessDetailModal: React.FC<BusinessDetailModalProps> = ({
 
         {/* Real-time Toast Alert */}
         {syncToast && (
-          <div className="mx-6 sm:mx-8 mt-4 p-3 rounded-2xl bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs font-bold flex items-center gap-2 animate-in slide-in-from-top duration-200">
+          <div className={`mx-6 sm:mx-8 mt-4 p-3 rounded-2xl text-xs font-bold flex items-center gap-2 animate-in slide-in-from-top duration-200 ${
+            syncToast.type === 'reward'
+              ? 'bg-emerald-100 border border-emerald-400 text-emerald-950'
+              : syncToast.type === 'success'
+              ? 'bg-amber-100 border border-amber-400 text-amber-950'
+              : 'bg-emerald-50 border border-emerald-300 text-emerald-900'
+          }`}>
             <Sparkles className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-            <span>{syncToast}</span>
+            <span>{syncToast.text}</span>
           </div>
         )}
 
@@ -368,11 +450,11 @@ export const BusinessDetailModal: React.FC<BusinessDetailModalProps> = ({
                     <h3 className="text-sm font-extrabold text-slate-900">Review Google Maps</h3>
                     <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-                      Live Real-Time
+                      {isLiveApi ? 'Google Places API (New)' : 'Live Real-Time'}
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-500">
-                    Berdasarkan {liveReviewCount} ulasan publik terverifikasi di Google Places
+                    Berdasarkan {liveReviewCount} ulasan publik terverifikasi di Google Maps
                   </p>
                 </div>
               </div>
@@ -382,11 +464,11 @@ export const BusinessDetailModal: React.FC<BusinessDetailModalProps> = ({
                   type="button"
                   onClick={handleSyncGoogleRating}
                   disabled={isSyncing}
-                  className="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-bold border border-amber-300 transition-all flex items-center gap-1.5 shadow-xs active:scale-95 disabled:opacity-50"
-                  title="Sinkronkan rating terbaru langsung dari Google Maps"
+                  className="px-3.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-bold border border-amber-300 transition-all flex items-center gap-1.5 shadow-xs active:scale-95 disabled:opacity-50"
+                  title="Sinkronkan rating terbaru langsung dari Google Places API (New)"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-amber-700' : 'text-amber-600'}`} />
-                  <span>{isSyncing ? 'Sinkronisasi...' : 'Sinkronkan Rating Real-Time'}</span>
+                  <span>{isSyncing ? 'Menghubungkan ke Maps...' : 'Sinkronkan Rating Real-Time'}</span>
                 </button>
 
                 <div className="text-right">
@@ -396,38 +478,111 @@ export const BusinessDetailModal: React.FC<BusinessDetailModalProps> = ({
               </div>
             </div>
 
-            {/* List of Google Reviews */}
-            <div className="space-y-3">
-              {googleDetails.reviews.map((gRev, idx) => (
-                <div key={idx} className="p-3.5 rounded-2xl bg-amber-50/40 border border-amber-200/70 space-y-1.5 text-xs">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      {gRev.profile_photo_url ? (
-                        <img 
-                          src={gRev.profile_photo_url} 
-                          alt={gRev.author_name} 
-                          className="w-6 h-6 rounded-full object-cover border border-amber-300"
-                        />
-                      ) : (
-                        <div className="w-6 h-6 rounded-full bg-amber-200 text-amber-900 font-bold flex items-center justify-center text-[10px]">
-                          {gRev.author_name.charAt(0)}
-                        </div>
-                      )}
-                      <div>
-                        <span className="font-bold text-slate-900">{gRev.author_name}</span>
-                        <span className="text-[10px] text-slate-400 ml-2">{gRev.relative_time_description}</span>
-                      </div>
-                    </div>
+            {/* Notification / Toast Banner */}
+            {syncToast && (
+              <div className={`p-3 rounded-2xl text-xs font-semibold flex items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-200 shadow-xs ${
+                syncToast.type === 'reward'
+                  ? 'bg-emerald-100 border border-emerald-400 text-emerald-950'
+                  : syncToast.type === 'success'
+                  ? 'bg-amber-50 border border-amber-300 text-amber-950'
+                  : 'bg-blue-50 border border-blue-300 text-blue-950'
+              }`}>
+                <Sparkles className="w-4 h-4 shrink-0 text-emerald-600" />
+                <span className="flex-1 leading-relaxed">{syncToast.text}</span>
+              </div>
+            )}
 
-                    <div className="text-amber-500 font-bold text-xs">
-                      {'★'.repeat(gRev.rating)}{'☆'.repeat(5 - gRev.rating)}
+            {/* Highlighted Verified Review by Logged-in Google Account (e.g. 'Max Gamer') */}
+            {detectedUserReview && (
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-100 border-2 border-emerald-400 shadow-sm space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">🌟</span>
+                    <div>
+                      <span className="font-extrabold text-emerald-950 text-xs flex items-center gap-1.5">
+                        Ulasan Akun Anda Terdeteksi di Google Maps!
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[9px] font-bold">
+                          ✓ Terverifikasi Google
+                        </span>
+                      </span>
+                      <p className="text-[10px] text-emerald-800">
+                        Penulis: <span className="font-bold">{detectedUserReview.author_name}</span> • {detectedUserReview.relative_time_description}
+                      </p>
                     </div>
                   </div>
-                  <p className="text-slate-700 leading-relaxed text-[11px] italic">
-                    "{gRev.text}"
-                  </p>
+                  <div className="text-amber-500 font-bold text-sm">
+                    {'★'.repeat(detectedUserReview.rating)}{'☆'.repeat(5 - detectedUserReview.rating)}
+                  </div>
                 </div>
-              ))}
+                <p className="text-slate-800 text-xs italic bg-white/80 p-2.5 rounded-xl border border-emerald-200 leading-relaxed">
+                  "{detectedUserReview.text}"
+                </p>
+                <div className="flex items-center justify-between pt-1 text-[11px] font-bold text-emerald-900">
+                  <span className="flex items-center gap-1">
+                    <span>🪙</span>
+                    <span>Reward Ulasan Google: +50 Poin Kontribusi</span>
+                  </span>
+                  <span className="text-[10px] bg-emerald-200/90 text-emerald-900 px-2 py-0.5 rounded-md font-semibold">
+                    Tersinkron ke Profil
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* List of Public Verified Google Reviews */}
+            <div className="space-y-3">
+              {(googleReviews.length > 0 ? googleReviews : googleDetails.reviews).map((gRev, idx) => {
+                const isUserMatch = currentUser && isAuthorNameMatch(gRev.author_name, currentUser.name);
+                return (
+                  <div 
+                    key={idx} 
+                    className={`p-3.5 rounded-2xl border space-y-1.5 text-xs transition-all ${
+                      isUserMatch
+                        ? 'bg-emerald-50/70 border-emerald-300 ring-1 ring-emerald-300'
+                        : 'bg-amber-50/40 border-amber-200/70'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {gRev.profile_photo_url ? (
+                          <img 
+                            src={gRev.profile_photo_url} 
+                            alt={gRev.author_name} 
+                            className="w-6 h-6 rounded-full object-cover border border-amber-300"
+                          />
+                        ) : (
+                          <div className="w-6 h-6 rounded-full bg-amber-200 text-amber-900 font-bold flex items-center justify-center text-[10px]">
+                            {gRev.author_name.charAt(0)}
+                          </div>
+                        )}
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-bold text-slate-900">{gRev.author_name}</span>
+                            {isUserMatch && (
+                              <span className="px-1.5 py-0.2 rounded bg-emerald-600 text-white text-[9px] font-bold">
+                                Anda
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[10px] text-slate-400">{gRev.relative_time_description}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        <span className="text-amber-500 font-bold text-xs">
+                          {'★'.repeat(gRev.rating)}{'☆'.repeat(5 - gRev.rating)}
+                        </span>
+                        <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.2 rounded">
+                          {gRev.rating}.0
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-slate-700 leading-relaxed text-[11px] italic">
+                      "{gRev.text}"
+                    </p>
+                  </div>
+                );
+              })}
             </div>
           </div>
 

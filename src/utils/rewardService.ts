@@ -1,8 +1,55 @@
-import { Voucher, UserVoucher, User } from '../types/business';
+import { Voucher, UserVoucher, User, PointTransaction } from '../types/business';
 import { updateUserPoints } from './authService';
 
 const VOUCHERS_STORAGE_KEY = 'spotsini_vouchers_v1';
 const USER_VOUCHERS_STORAGE_KEY = 'spotsini_user_vouchers_v1';
+const POINT_TRANSACTIONS_STORAGE_KEY = 'spotsini_point_transactions_v1';
+
+export const INITIAL_POINT_TRANSACTIONS: PointTransaction[] = [
+  {
+    id: 'TX-INIT-001',
+    user_id: 'USR-CUST-01',
+    activity: 'BONUS',
+    description: 'Bonus Pendaftaran Warga Penggilingan',
+    points_change: 50,
+    created_at: '2026-09-01T08:00:00Z'
+  },
+  {
+    id: 'TX-INIT-002',
+    user_id: 'USR-CUST-01',
+    activity: 'REVIEW_SUBMITTED',
+    description: 'Ulasan & Foto: Ayam Bakar Pak Yono PIK',
+    points_change: 45,
+    created_at: '2026-09-15T10:35:00Z'
+  },
+  {
+    id: 'TX-INIT-003',
+    user_id: 'USR-CUST-01',
+    activity: 'GPS_VISIT',
+    description: 'Verifikasi Kunjungan Geotagging PIK Penggilingan (Radius ≤ 100m)',
+    points_change: 20,
+    created_at: '2026-09-15T10:36:00Z'
+  }
+];
+
+export function getPointTransactions(userId?: string): PointTransaction[] {
+  try {
+    const raw = localStorage.getItem(POINT_TRANSACTIONS_STORAGE_KEY);
+    const all: PointTransaction[] = raw ? JSON.parse(raw) : INITIAL_POINT_TRANSACTIONS;
+    if (userId) {
+      return all.filter(t => t.user_id === userId);
+    }
+    return all;
+  } catch (e) {
+    return INITIAL_POINT_TRANSACTIONS;
+  }
+}
+
+export function savePointTransaction(transaction: PointTransaction): void {
+  const all = getPointTransactions();
+  const updated = [transaction, ...all];
+  localStorage.setItem(POINT_TRANSACTIONS_STORAGE_KEY, JSON.stringify(updated));
+}
 
 export const INITIAL_VOUCHERS: Voucher[] = [
   {
@@ -105,6 +152,16 @@ export function redeemVoucher(user: User, voucher: Voucher): { success: boolean;
   // Deduct points
   updateUserPoints(user.id, -voucher.points_required);
 
+  // Record point deduction in transaction history
+  savePointTransaction({
+    id: `TX-VCH-${Date.now()}`,
+    user_id: user.id,
+    activity: 'VOUCHER_REDEEM',
+    description: `Penukaran Voucher: "${voucher.title}" (${voucher.business_name})`,
+    points_change: -voucher.points_required,
+    created_at: new Date().toISOString()
+  });
+
   // Update voucher stock
   const allVouchers = getVouchers().map(v => {
     if (v.id === voucher.id) {
@@ -173,4 +230,64 @@ export function approveVoucher(voucherId: string): void {
     return v;
   });
   saveVouchers(updated);
+}
+
+export interface ClaimGoogleReviewRewardResult {
+  success: boolean;
+  earnedPoints: number;
+  isAlreadyClaimed: boolean;
+  message: string;
+  updatedUser: User | null;
+}
+
+/**
+ * Claims reward points for a verified Google Maps review matching the user's name
+ * Awards +50 points, registers PointTransaction, and prevents double claiming.
+ */
+export function claimGoogleReviewReward(params: {
+  userId: string;
+  userName: string;
+  businessId: string;
+  businessName: string;
+  authorName: string;
+  points?: number;
+}): ClaimGoogleReviewRewardResult {
+  const points = params.points || 50;
+  const claimKey = `spotsini_claimed_gmap_rev_${params.userId}_${params.businessId}`;
+  const alreadyClaimedAt = localStorage.getItem(claimKey);
+
+  if (alreadyClaimedAt) {
+    return {
+      success: false,
+      earnedPoints: 0,
+      isAlreadyClaimed: true,
+      message: `Reward ulasan Google Maps (${params.authorName}) untuk "${params.businessName}" sudah pernah diklaim sebelumnya.`,
+      updatedUser: null,
+    };
+  }
+
+  // 1. Award points to user profile
+  const updatedUser = updateUserPoints(params.userId, points);
+
+  // 2. Record to PointTransaction history
+  const tx: PointTransaction = {
+    id: `TX-GMAP-${Date.now()}`,
+    user_id: params.userId,
+    activity: 'BONUS',
+    description: `Reward Ulasan Google Maps Terverifikasi Akun "${params.authorName}" di "${params.businessName}"`,
+    points_change: points,
+    created_at: new Date().toISOString(),
+  };
+  savePointTransaction(tx);
+
+  // 3. Mark as claimed in storage
+  localStorage.setItem(claimKey, new Date().toISOString());
+
+  return {
+    success: true,
+    earnedPoints: points,
+    isAlreadyClaimed: false,
+    message: `🎉 Selamat ${params.userName}! Ulasan Google Maps Anda terverifikasi. +${points} Poin Reward berhasil ditambahkan ke profil Anda!`,
+    updatedUser,
+  };
 }
