@@ -12,10 +12,11 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
+    flowType: 'implicit',
   },
   realtime: {
     params: {
-      eventsPerSecond: 10,
+      eventsPerSecond: 2,
     },
   },
 });
@@ -112,11 +113,40 @@ export async function syncSupabaseUserProfile(sessionUser: any): Promise<User> {
 
 /**
  * Listens to Supabase Auth state changes and initial session
- * Handles OAuth callback and automatic profile syncing
+ * Handles OAuth callback, clock skew safety, and automatic profile syncing
  */
 export function initAuthSubscription(
   onUserChange: (user: User | null) => void
 ): () => void {
+  // Helper: Direct URL hash session extraction fallback for device clock skew or URL fragment delay
+  const checkUrlHashForSession = async () => {
+    try {
+      if (typeof window !== 'undefined' && window.location.hash.includes('access_token=')) {
+        const hash = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : window.location.hash;
+        const params = new URLSearchParams(hash);
+        const accessToken = params.get('access_token');
+        const refreshToken = params.get('refresh_token');
+
+        if (accessToken) {
+          const { data } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken || '',
+          });
+
+          if (data?.session?.user) {
+            const synced = await syncSupabaseUserProfile(data.session.user);
+            onUserChange(synced);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Direct URL hash session extraction fallback:', e);
+    }
+  };
+
+  // Run direct URL hash check immediately
+  checkUrlHashForSession();
+
   // 1. Fetch initial session on startup
   supabase.auth.getSession().then(async ({ data: { session } }) => {
     if (session?.user) {
@@ -186,35 +216,63 @@ export type RealtimePayload =
   | { type: 'BUSINESS_STATUS_CHANGED'; businessId: string; status: string; timestamp: string }
   | { type: 'NOTIFICATION_BROADCAST'; title: string; message: string; businessName?: string };
 
-// Channel for cross-client real-time synchronization
-export const spotsiniRealtimeChannel = supabase.channel('spotsini_public_sync');
+// Check if Realtime WebSocket should be actively connected (set VITE_ENABLE_SUPABASE_REALTIME=true in .env to enable)
+// Defaults to false to avoid persistent websocket reconnection errors when server realtime is not configured
+const ENABLE_SUPABASE_REALTIME_WS = (import.meta as any).env?.VITE_ENABLE_SUPABASE_REALTIME === 'true';
+
+// Channel reference (dormant by default to prevent failed websocket retry loops)
+export let spotsiniRealtimeChannel: any = null;
 
 // Subscribe to real-time events broadcast across users
 export function initRealtimeSubscriptions(
   onEvent: (event: RealtimePayload) => void
 ): () => void {
-  try {
-    spotsiniRealtimeChannel
-      .on('broadcast', { event: 'SPOTSINI_EVENT' }, (payload: any) => {
-        if (payload?.payload) {
-          onEvent(payload.payload as RealtimePayload);
-        }
-      })
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          console.log('⚡ Supabase Realtime connected for SpotSiNi!');
-        }
-      });
-  } catch (err) {
-    console.warn('Could not initialize Supabase realtime subscription:', err);
+  // 1. Always listen to local CustomEvent bus (instantaneous & 100% reliable across components)
+  const handleLocalEvent = (e: Event) => {
+    const customEvt = e as CustomEvent<RealtimePayload>;
+    if (customEvt.detail) {
+      onEvent(customEvt.detail);
+    }
+  };
+  window.addEventListener('spotsini:realtime', handleLocalEvent);
+
+  // 2. Only connect to Supabase Realtime WebSocket if explicitly enabled
+  if (ENABLE_SUPABASE_REALTIME_WS) {
+    try {
+      spotsiniRealtimeChannel = supabase.channel('spotsini_public_sync');
+      spotsiniRealtimeChannel
+        .on('broadcast', { event: 'SPOTSINI_EVENT' }, (payload: any) => {
+          if (payload?.payload) {
+            onEvent(payload.payload as RealtimePayload);
+          }
+        })
+        .subscribe((status: string) => {
+          if (status === 'SUBSCRIBED') {
+            console.log('⚡ Supabase Realtime connected for SpotSiNi!');
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+            // Disconnect immediately on channel error to prevent continuous retry failed loops
+            console.info('ℹ️ Supabase Realtime channel inactive, unmounting websocket.');
+            if (spotsiniRealtimeChannel) {
+              supabase.removeChannel(spotsiniRealtimeChannel);
+              spotsiniRealtimeChannel = null;
+            }
+          }
+        });
+    } catch (err) {
+      console.warn('Realtime subscription skipped:', err);
+    }
   }
 
   // Return unsubscribe cleanup function
   return () => {
-    try {
-      spotsiniRealtimeChannel.unsubscribe();
-    } catch (e) {
-      // ignore
+    window.removeEventListener('spotsini:realtime', handleLocalEvent);
+    if (spotsiniRealtimeChannel) {
+      try {
+        supabase.removeChannel(spotsiniRealtimeChannel);
+      } catch (e) {
+        // ignore
+      }
+      spotsiniRealtimeChannel = null;
     }
   };
 }
@@ -223,18 +281,21 @@ export function initRealtimeSubscriptions(
  * Broadcast an event to all connected SpotSiNi clients in real time
  */
 export async function broadcastRealtimeEvent(payload: RealtimePayload): Promise<void> {
-  try {
-    await spotsiniRealtimeChannel.send({
-      type: 'broadcast',
-      event: 'SPOTSINI_EVENT',
-      payload,
-    });
-  } catch (err) {
-    console.warn('Realtime broadcast error, fallback dispatched locally:', err);
-  }
-
-  // Also dispatch a window CustomEvent so current tab processes it immediately
+  // Always dispatch local event bus so current tab and all attached components react immediately
   window.dispatchEvent(new CustomEvent('spotsini:realtime', { detail: payload }));
+
+  // Broadcast to remote Supabase channel if active
+  if (spotsiniRealtimeChannel && ENABLE_SUPABASE_REALTIME_WS) {
+    try {
+      await spotsiniRealtimeChannel.send({
+        type: 'broadcast',
+        event: 'SPOTSINI_EVENT',
+        payload,
+      });
+    } catch (err) {
+      // Non-blocking fallback
+    }
+  }
 }
 
 // ----------------------------------------------------
