@@ -1,5 +1,6 @@
 import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
 import { GooglePlaceReview, Business } from '../types/business';
+import { fetchPlaceDetails, mapToGooglePlaceReviews } from '../services/placesService';
 
 const GOOGLE_API_KEY_STORAGE = 'spotsini_google_maps_key';
 
@@ -177,10 +178,14 @@ export interface GooglePlacesNewResult {
  */
 export async function fetchGooglePlacesApiNew(
   bizOrPlaceId: Business | string,
-  currentUserName?: string | null
+  currentUserName?: string | null,
+  forceRefresh = false
 ): Promise<GooglePlacesNewResult> {
   const envPlaceId = getDefaultGooglePlaceId();
   let targetPlaceId = '';
+  let spotName = '';
+  let spotLat: number | null = null;
+  let spotLng: number | null = null;
   let bizObject: Business | null = null;
 
   if (typeof bizOrPlaceId === 'string') {
@@ -188,76 +193,46 @@ export async function fetchGooglePlacesApiNew(
   } else {
     bizObject = bizOrPlaceId;
     targetPlaceId = bizOrPlaceId.placeId?.trim() || bizOrPlaceId.google_place_id?.trim() || '';
+    spotName = bizOrPlaceId.nama_usaha;
+    spotLat = bizOrPlaceId.latitude;
+    spotLng = bizOrPlaceId.longitude;
   }
 
-  // Fallback to env place ID only if business has no specific place ID
-  if (!targetPlaceId) {
+  // Fallback to env place ID only if business has no specific place ID and no spotName
+  if (!targetPlaceId && !spotName) {
     const envCustomId = (import.meta as any).env?.VITE_GOOGLE_PLACE_ID?.trim();
     targetPlaceId = envCustomId || envPlaceId;
   }
 
-  const apiKey = getGooglePlacesApiKey();
+  // Fetch with dynamic 404 NOT_FOUND fallback to places:searchText
+  const details = await fetchPlaceDetails(targetPlaceId, {
+    spotName,
+    spotLat,
+    spotLng,
+    forceRefresh
+  });
 
-  // 1. Live Google Places API (New) fetch
-  if (apiKey && targetPlaceId) {
-    try {
-      const url = `https://places.googleapis.com/v1/places/${encodeURIComponent(targetPlaceId)}`;
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Goog-Api-Key': apiKey,
-          'X-Goog-FieldMask': 'id,displayName,rating,userRatingCount,reviews',
-        },
-      });
+  if (details) {
+    const reviews: GooglePlaceReview[] = mapToGooglePlaceReviews(details.reviews);
+    const rating = typeof details.rating === 'number' ? details.rating : null;
+    const reviewCount = typeof details.userRatingCount === 'number' ? details.userRatingCount : reviews.length;
 
-      if (response.ok) {
-        const data = await response.json();
-        const rating = typeof data.rating === 'number'
-          ? data.rating
-          : (typeof data.rating === 'string' ? parseFloat(data.rating) : null);
-        const reviewCount = typeof data.userRatingCount === 'number'
-          ? data.userRatingCount
-          : (Array.isArray(data.reviews) ? data.reviews.length : 0);
-
-        // Map array ulasan asli dari response Google (response.reviews)
-        const rawReviews = Array.isArray(data.reviews) ? data.reviews : [];
-        const reviews: GooglePlaceReview[] = rawReviews.map((r: any) => ({
-          author_name: r.authorAttribution?.displayName || 'Pengguna Google Maps',
-          rating: typeof r.rating === 'number' ? r.rating : 5,
-          text: r.text?.text || (typeof r.text === 'string' ? r.text : '') || r.originalText?.text || '',
-          relative_time_description: r.relativePublishTimeDescription || 'Baru saja',
-          profile_photo_url: r.authorAttribution?.photoUri || undefined,
-          authorAttribution: r.authorAttribution ? {
-            displayName: r.authorAttribution.displayName,
-            photoUri: r.authorAttribution.photoUri,
-            uri: r.authorAttribution.uri
-          } : undefined
-        }));
-
-        let userReview: GooglePlaceReview | null = null;
-        if (currentUserName) {
-          userReview = reviews.find(r => isAuthorNameMatch(r.authorAttribution?.displayName || r.author_name, currentUserName)) || null;
-        }
-
-        console.log(`🗺️ [Google Places API New] Live reviews retrieved for ${targetPlaceId}: ⭐ ${rating ?? '-'} (${reviewCount} total reviews, ${reviews.length} actual items)`);
-
-        return {
-          placeId: targetPlaceId,
-          rating,
-          reviewCount,
-          reviews,
-          isLive: true,
-          source: 'Google Places API (New)',
-          userReview,
-        };
-      } else {
-        const errBody = await response.text().catch(() => '');
-        console.warn(`[Google Places API (New)] Request failed with HTTP ${response.status}:`, errBody);
-      }
-    } catch (networkErr) {
-      console.warn('[Google Places API (New)] Network error:', networkErr);
+    let userReview: GooglePlaceReview | null = null;
+    if (currentUserName) {
+      userReview = reviews.find(r => isAuthorNameMatch(r.authorAttribution?.displayName || r.author_name, currentUserName)) || null;
     }
+
+    console.log(`🗺️ [Google Places API New] Live reviews retrieved for ${details.id} (${spotName || targetPlaceId}): ⭐ ${rating ?? '-'} (${reviewCount} total reviews, ${reviews.length} actual items)`);
+
+    return {
+      placeId: details.id,
+      rating,
+      reviewCount,
+      reviews,
+      isLive: true,
+      source: 'Google Places API (New)',
+      userReview,
+    };
   }
 
   // 2. Fallback when API key is missing or network fails

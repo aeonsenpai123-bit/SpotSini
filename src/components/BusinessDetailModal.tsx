@@ -122,8 +122,8 @@ export const BusinessDetailModal: React.FC<BusinessDetailModalProps> = ({
     setIsSyncing(true);
 
     try {
-      // 1. Fetch real-time data from Google Places API (New) using Place ID & API Key
-      const res = await fetchGooglePlacesApiNew(business, currentUser?.name);
+      // 1. Fetch real-time data from Google Places API (New) using Place ID & API Key (force refresh)
+      const res = await fetchGooglePlacesApiNew(business, currentUser?.name, true);
       setLiveRating(res.rating);
       setLiveReviewCount(res.reviewCount);
       setGoogleReviews(res.reviews);

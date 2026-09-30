@@ -25,7 +25,12 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({
 }) => {
   // Dynamically load real-time rating and reviews from Google Places API (New)
   const activePlaceId = business.placeId || business.google_place_id;
-  const { data: placeData, loading: placeLoading } = usePlaceDetails(activePlaceId);
+  const { data: placeData, loading: placeLoading } = usePlaceDetails(
+    activePlaceId,
+    business.nama_usaha,
+    business.latitude,
+    business.longitude
+  );
 
   const displayRating = placeData?.rating ?? (business.google_rating && business.google_rating > 0 ? business.google_rating : null);
   const displayReviewCount = placeData?.userRatingCount ?? (business.google_review_count && business.google_review_count > 0 ? business.google_review_count : 0);
