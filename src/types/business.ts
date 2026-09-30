@@ -22,6 +22,11 @@ export interface GooglePlaceReview {
   text: string;
   relative_time_description: string;
   profile_photo_url?: string;
+  authorAttribution?: {
+    displayName: string;
+    photoUri?: string;
+    uri?: string;
+  };
 }
 
 export interface Business {

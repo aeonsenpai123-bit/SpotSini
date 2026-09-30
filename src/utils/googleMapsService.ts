@@ -95,8 +95,8 @@ export async function loadGoogleMaps(): Promise<typeof google | null> {
 }
 
 /**
- * Realistic cached Google Places data for Kelurahan Penggilingan micro-businesses
- * Used for instant display and robust Task 8 offline / quota fallback.
+ * Realistic cached Google Places metadata (rating & counts) for Kelurahan Penggilingan micro-businesses.
+ * NOTE: Mock reviews have been completely purged; reviews are loaded 100% dynamically from Google Places API (New).
  */
 export const CACHED_GOOGLE_PLACES: Record<string, {
   place_id: string;
@@ -108,92 +108,31 @@ export const CACHED_GOOGLE_PLACES: Record<string, {
     place_id: 'ChIJ5_q818iMaS4RWbY9U3z9rXQ',
     rating: 4.8,
     review_count: 54,
-    reviews: [
-      {
-        author_name: 'Dewi Lestari',
-        rating: 5,
-        text: 'Jambu kristalnya renyah sekali dan tidak ada bijinya. Bumbu rujaknya kental pedas manis mantap!',
-        relative_time_description: '3 minggu lalu',
-        profile_photo_url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&auto=format&fit=crop&q=80'
-      },
-      {
-        author_name: 'Bambang Sugianto',
-        rating: 5,
-        text: 'Langganan kalau lewat blok A Penggilingan. Pelayanan cepat dan porsi melimpah.',
-        relative_time_description: '1 bulan lalu'
-      },
-      {
-        author_name: 'Rian Saputra',
-        rating: 4,
-        text: 'Enak dan buahnya segar, tempatnya bersih di pinggir jalan utama.',
-        relative_time_description: '2 bulan lalu'
-      }
-    ]
+    reviews: []
   },
   'BIZ-PGL-002': {
     place_id: 'ChIJb6mYQdGMaS4Ro8Z1xV-5W9Q',
     rating: 4.9,
     review_count: 142,
-    reviews: [
-      {
-        author_name: 'Max Gamer',
-        rating: 5,
-        text: 'Ayam bakarnya sangat empuk dan bumbu kecap manis pedasnya meresap sampai ke tulang. Pelayanan ramah khas warga Penggilingan. Wajib dicoba!',
-        relative_time_description: '3 hari lalu',
-        profile_photo_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80'
-      },
-      {
-        author_name: 'Hendra Wijaya',
-        rating: 5,
-        text: 'Ayam bakarnya legendaris di sentra PIK Penggilingan. Sambal terasinya juara!',
-        relative_time_description: '1 minggu lalu',
-        profile_photo_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80'
-      },
-      {
-        author_name: 'Nur Aini',
-        rating: 5,
-        text: 'Tempat makan langganan keluarga. Nasi timbel komplitnya recommended.',
-        relative_time_description: '3 minggu lalu'
-      }
-    ]
+    reviews: []
   },
   'BIZ-PGL-101': {
     place_id: 'ChIJV4l7tNCNaS4RUf6M8u7z8NQ',
     rating: 4.9,
     review_count: 88,
-    reviews: [
-      {
-        author_name: 'Karang Taruna RW 07',
-        rating: 5,
-        text: 'Pesan 60 pcs kaos sablon kualitas jahitannya sangat rapi dan selesai sebelum deadline. Ibu Hj. Ratu sangat ramah!',
-        relative_time_description: '2 minggu lalu',
-        profile_photo_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80'
-      },
-      {
-        author_name: 'Faisal Akbar',
-        rating: 5,
-        text: 'Bordir komputernya presisi, harga UMKM tapi kualitas distro pabrikan. Recommended di Penggilingan!',
-        relative_time_description: '1 bulan lalu'
-      }
-    ]
+    reviews: []
   },
   'BIZ-PGL-010': {
     place_id: 'ChIJyQ643tOMaS4Rc0c3s4fV6o0',
     rating: 4.7,
     review_count: 67,
-    reviews: [
-      {
-        author_name: 'Siti Maryam',
-        rating: 5,
-        text: 'Laundry koin cepat, 1 jam sudah kering dan wangi. Tempatnya ber-AC dan nyaman nunggunya.',
-        relative_time_description: '2 minggu lalu'
-      }
-    ]
+    reviews: []
   }
 };
 
 /**
- * Helper to fetch Google Place details or return realistic cached data
+ * Helper to fetch Google Place base details.
+ * Reviews array is empty by default; live reviews come exclusively from Google Places API (New).
  */
 export function getGooglePlaceDetails(biz: Business): {
   placeId: string;
@@ -202,47 +141,15 @@ export function getGooglePlaceDetails(biz: Business): {
   reviews: GooglePlaceReview[];
 } {
   const cached = CACHED_GOOGLE_PLACES[biz.id];
-  if (cached) {
-    return {
-      placeId: biz.google_place_id || cached.place_id,
-      rating: biz.google_rating || cached.rating,
-      reviewCount: biz.google_review_count || cached.review_count,
-      reviews: cached.reviews
-    };
-  }
-
-  // Baseline generator for businesses without specific cached reviews
-  const fallbackPlaceId = biz.google_place_id || `ChIJ-${biz.id.replace(/[^A-Za-z0-9]/g, '')}-PGL`;
-  const rating = biz.google_rating || biz.rating_avg || 4.8;
-  const reviewCount = biz.google_review_count || (biz.review_count ? biz.review_count * 3 : 32);
-
-  const reviews: GooglePlaceReview[] = [
-    {
-      author_name: 'Max Gamer',
-      rating: 5,
-      text: `Produk ${biz.produk} kualitasnya sangat memuaskan dan recommended di wilayah ${biz.rw} Penggilingan.`,
-      relative_time_description: '3 hari lalu',
-      profile_photo_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80'
-    },
-    {
-      author_name: 'Pengunjung Google Maps',
-      rating: 5,
-      text: `Pelayanan ramah dan tempatnya strategis di wilayah ${biz.rw} Penggilingan. Sangat membantu warga sekitar.`,
-      relative_time_description: '1 bulan lalu'
-    },
-    {
-      author_name: 'Warga Cakung',
-      rating: rating >= 4.7 ? 5 : 4,
-      text: `Produk ${biz.produk} kualitasnya memuaskan dengan harga terjangkau.`,
-      relative_time_description: '2 bulan lalu'
-    }
-  ];
+  const placeId = biz.google_place_id || cached?.place_id || getDefaultGooglePlaceId();
+  const rating = biz.google_rating || cached?.rating || biz.rating_avg || 4.9;
+  const reviewCount = biz.google_review_count || cached?.review_count || (biz.review_count ? biz.review_count * 3 : 142);
 
   return {
-    placeId: fallbackPlaceId,
+    placeId,
     rating,
     reviewCount,
-    reviews
+    reviews: [] // Clean: No static dummy reviews!
   };
 }
 
@@ -258,8 +165,9 @@ export interface GooglePlacesNewResult {
 
 /**
  * Real-time call to Google Places API (New) using Place ID and API Key.
- * Fetches average star rating, public review count, and verified reviews.
- * Includes graceful offline / quota fallback and detects user's review (e.g. 'Max Gamer').
+ * Fetches average star rating, public review count, and verified reviews array 100% from Google.
+ * URL: https://places.googleapis.com/v1/places/${PLACE_ID}
+ * Headers: X-Goog-Api-Key, X-Goog-FieldMask: id,displayName,rating,userRatingCount,reviews
  */
 export async function fetchGooglePlacesApiNew(
   bizOrPlaceId: Business | string,
@@ -279,10 +187,10 @@ export async function fetchGooglePlacesApiNew(
 
   const apiKey = getGooglePlacesApiKey();
 
-  // 1. Attempt live Google Places API (New) fetch
+  // 1. Live Google Places API (New) fetch
   if (apiKey && targetPlaceId) {
     try {
-      const url = `https://places.googleapis.com/v1/places/${encodeURIComponent(targetPlaceId)}?languageCode=id`;
+      const url = `https://places.googleapis.com/v1/places/${encodeURIComponent(targetPlaceId)}`;
       const response = await fetch(url, {
         method: 'GET',
         headers: {
@@ -299,20 +207,27 @@ export async function fetchGooglePlacesApiNew(
           ? data.userRatingCount
           : (Array.isArray(data.reviews) ? data.reviews.length : 142);
 
-        const reviews: GooglePlaceReview[] = (data.reviews || []).map((r: any) => ({
+        // Map array ulasan asli dari response Google (response.reviews)
+        const rawReviews = Array.isArray(data.reviews) ? data.reviews : [];
+        const reviews: GooglePlaceReview[] = rawReviews.map((r: any) => ({
           author_name: r.authorAttribution?.displayName || 'Pengguna Google Maps',
           rating: typeof r.rating === 'number' ? r.rating : 5,
-          text: r.text?.text || r.originalText?.text || (typeof r.text === 'string' ? r.text : ''),
+          text: r.text?.text || (typeof r.text === 'string' ? r.text : '') || r.originalText?.text || '',
           relative_time_description: r.relativePublishTimeDescription || 'Baru saja',
           profile_photo_url: r.authorAttribution?.photoUri || undefined,
+          authorAttribution: r.authorAttribution ? {
+            displayName: r.authorAttribution.displayName,
+            photoUri: r.authorAttribution.photoUri,
+            uri: r.authorAttribution.uri
+          } : undefined
         }));
 
         let userReview: GooglePlaceReview | null = null;
         if (currentUserName) {
-          userReview = reviews.find(r => isAuthorNameMatch(r.author_name, currentUserName)) || null;
+          userReview = reviews.find(r => isAuthorNameMatch(r.authorAttribution?.displayName || r.author_name, currentUserName)) || null;
         }
 
-        console.log(`🗺️ [Google Places API New] Live data retrieved for ${targetPlaceId}: ⭐ ${rating} (${reviewCount} reviews)`);
+        console.log(`🗺️ [Google Places API New] Live reviews retrieved for ${targetPlaceId}: ⭐ ${rating} (${reviewCount} total reviews, ${reviews.length} actual items)`);
 
         return {
           placeId: targetPlaceId,
@@ -328,33 +243,25 @@ export async function fetchGooglePlacesApiNew(
         console.warn(`[Google Places API (New)] Request failed with HTTP ${response.status}:`, errBody);
       }
     } catch (networkErr) {
-      console.warn('[Google Places API (New)] Network error / CORS blocked, using verified fallback:', networkErr);
+      console.warn('[Google Places API (New)] Network error:', networkErr);
     }
   }
 
-  // 2. Verified fallback
-  const fallbackDetails = bizObject
-    ? getGooglePlaceDetails(bizObject)
-    : {
-        placeId: CACHED_GOOGLE_PLACES['BIZ-PGL-002']?.place_id || 'ChIJb6mYQdGMaS4Ro8Z1xV-5W9Q',
-        rating: CACHED_GOOGLE_PLACES['BIZ-PGL-002']?.rating || 4.9,
-        reviewCount: CACHED_GOOGLE_PLACES['BIZ-PGL-002']?.review_count || 142,
-        reviews: CACHED_GOOGLE_PLACES['BIZ-PGL-002']?.reviews || [],
-      };
-
-  let fallbackUserReview: GooglePlaceReview | null = null;
-  if (currentUserName) {
-    fallbackUserReview = fallbackDetails.reviews.find(r => isAuthorNameMatch(r.author_name, currentUserName)) || null;
-  }
+  // 2. Fallback when API key is missing or network fails
+  // Returns zero mock reviews - empty array!
+  const fallbackDetails = bizObject ? getGooglePlaceDetails(bizObject) : null;
+  const fallbackPlaceId = targetPlaceId || fallbackDetails?.placeId || envPlaceId;
+  const fallbackRating = fallbackDetails?.rating || 4.9;
+  const fallbackCount = fallbackDetails?.reviewCount || 142;
 
   return {
-    placeId: targetPlaceId || fallbackDetails.placeId,
-    rating: fallbackDetails.rating,
-    reviewCount: fallbackDetails.reviewCount,
-    reviews: fallbackDetails.reviews,
+    placeId: fallbackPlaceId,
+    rating: fallbackRating,
+    reviewCount: fallbackCount,
+    reviews: [], // Zero dummy reviews!
     isLive: false,
     source: 'Cached / Fallback',
-    userReview: fallbackUserReview,
+    userReview: null,
   };
 }
 

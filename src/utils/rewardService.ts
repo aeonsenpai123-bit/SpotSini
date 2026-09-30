@@ -1,5 +1,6 @@
 import { Voucher, UserVoucher, User, PointTransaction } from '../types/business';
 import { updateUserPoints } from './authService';
+import { supabase } from './supabaseClient';
 
 const VOUCHERS_STORAGE_KEY = 'spotsini_vouchers_v1';
 const USER_VOUCHERS_STORAGE_KEY = 'spotsini_user_vouchers_v1';
@@ -282,6 +283,33 @@ export function claimGoogleReviewReward(params: {
 
   // 3. Mark as claimed in storage
   localStorage.setItem(claimKey, new Date().toISOString());
+
+  // 4. Asynchronously sync to Supabase public.profiles and public.point_transactions
+  if (updatedUser) {
+    (async () => {
+      try {
+        await (supabase.from('profiles').update({
+          points_balance: updatedUser.points_balance,
+          updated_at: new Date().toISOString()
+        }).eq('id', params.userId) as unknown as Promise<any>);
+      } catch (e) {
+        // Non-blocking
+      }
+
+      try {
+        await (supabase.from('point_transactions').insert({
+          id: tx.id,
+          user_id: params.userId,
+          activity: tx.activity,
+          description: tx.description,
+          points_change: tx.points_change,
+          created_at: tx.created_at
+        }) as unknown as Promise<any>);
+      } catch (e) {
+        // Non-blocking
+      }
+    })();
+  }
 
   return {
     success: true,
