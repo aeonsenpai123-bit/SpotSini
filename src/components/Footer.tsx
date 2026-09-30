@@ -1,12 +1,17 @@
 import React from 'react';
-import { MapPin, Heart, ShieldCheck } from 'lucide-react';
+import { MapPin, Heart, ShieldCheck, FileText } from 'lucide-react';
 import { BrandMark } from './BrandMark';
+import { User } from '../types/business';
+import { isUserAdmin } from '../utils/authService';
 
 interface FooterProps {
   onNavigate: (tab: string) => void;
+  currentUser?: User | null;
 }
 
-export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
+export const Footer: React.FC<FooterProps> = ({ onNavigate, currentUser }) => {
+  const isAdmin = isUserAdmin(currentUser);
+
   return (
     <footer className="bg-[#0A2D21] text-white border-t border-emerald-950/60 no-print">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -74,11 +79,6 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                   Tanya Jawab (FAQ)
                 </button>
               </li>
-              <li>
-                <button onClick={() => onNavigate('cetak')} className="hover:text-white transition-colors">
-                  Cetak Rekapitulasi (PDF/Excel)
-                </button>
-              </li>
             </ul>
           </div>
 
@@ -93,12 +93,22 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                   Ajukan Usaha Baru
                 </button>
               </li>
-              <li>
-                <button onClick={() => onNavigate('admin')} className="hover:text-white transition-colors flex items-center gap-1.5 text-[#EEB79D]">
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  <span>Panel Verifikasi Admin</span>
-                </button>
-              </li>
+              {isAdmin && (
+                <>
+                  <li>
+                    <button onClick={() => onNavigate('admin')} className="hover:text-white transition-colors flex items-center gap-1.5 text-[#EEB79D]">
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      <span>Panel Verifikasi Admin</span>
+                    </button>
+                  </li>
+                  <li>
+                    <button onClick={() => onNavigate('admin-rekapitulasi')} className="hover:text-white transition-colors flex items-center gap-1.5 text-amber-300 font-semibold">
+                      <FileText className="w-3.5 h-3.5" />
+                      <span>Panel Rekapitulasi Kelurahan</span>
+                    </button>
+                  </li>
+                </>
+              )}
               <li>
                 <a href="https://kel-penggilingan.jakarta.go.id" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">
                   Portal Resmi Kelurahan

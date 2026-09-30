@@ -1,14 +1,38 @@
 import React, { useState } from 'react';
-import { Business } from '../types/business';
+import { Business, User } from '../types/business';
 import { FileText, Download, Printer, Filter, CheckCircle2 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { AdminGuard } from './AdminGuard';
 
 interface ReportSectionProps {
   businesses: Business[];
+  isAdmin?: boolean;
+  onNavigate?: (tab: string) => void;
+  onOpenAuth?: () => void;
+  currentUser?: User | null;
 }
 
-export const ReportSection: React.FC<ReportSectionProps> = ({ businesses }) => {
+export const ReportSection: React.FC<ReportSectionProps> = ({
+  businesses,
+  isAdmin = false,
+  onNavigate,
+  onOpenAuth,
+  currentUser
+}) => {
   const [selectedFilterRw, setSelectedFilterRw] = useState<string>('Semua');
+
+  // RBAC Guard: If user is not admin, deny access immediately
+  if (!isAdmin) {
+    return (
+      <AdminGuard
+        currentUser={currentUser || null}
+        onNavigate={onNavigate || (() => {})}
+        onOpenAuth={onOpenAuth || (() => {})}
+        title="Akses Terbatas: Dokumen Rekapitulasi Resmi"
+        description="Pratinjau rekapitulasi data usaha mikro dan berkas unduhan PDF/Excel hanya dapat diakses oleh Admin atau Pengurus Kelurahan Penggilingan untuk menjaga integritas data resmi."
+      />
+    );
+  }
 
   // ONLY businesses with status "Terverifikasi" appear in the recap table & export
   const verifiedBusinesses = businesses.filter(b => b.status_verifikasi === 'Terverifikasi');
@@ -20,8 +44,13 @@ export const ReportSection: React.FC<ReportSectionProps> = ({ businesses }) => {
   // Dynamic RW list from verified data
   const rws = Array.from(new Set(verifiedBusinesses.map(b => b.rw))).sort();
 
-  // Export to Excel (.xlsx)
+  // Export to Excel (.xlsx) - Protected with isAdmin check
   const handleExportExcel = () => {
+    if (!isAdmin) {
+      alert('Akses Terbatas: Hanya akun Admin yang berhak mengunduh rekapitulasi data resmi.');
+      return;
+    }
+
     const exportData = filtered.map((b, idx) => ({
       'No': idx + 1,
       'Nama Usaha Mikro': b.nama_usaha,
@@ -43,8 +72,12 @@ export const ReportSection: React.FC<ReportSectionProps> = ({ businesses }) => {
     XLSX.writeFile(workbook, `Rekapitulasi_Usaha_Mikro_Penggilingan_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
-  // Trigger PDF print with clean print stylesheet
+  // Trigger PDF print with clean print stylesheet - Protected with isAdmin check
   const handlePrintPdf = () => {
+    if (!isAdmin) {
+      alert('Akses Terbatas: Hanya akun Admin yang berhak mencetak rekapitulasi dokumen resmi.');
+      return;
+    }
     window.print();
   };
 
@@ -154,66 +187,68 @@ export const ReportSection: React.FC<ReportSectionProps> = ({ businesses }) => {
         </div>
       </div>
 
-      {/* PRINT-ONLY OFFICIAL DOCUMENT VIEW (Formatted for high-res PDF generation) */}
-      <div className="print-only p-8 bg-white text-black">
-        {/* Official Kop Surat */}
-        <div className="text-center border-b-2 border-black pb-4 mb-6">
-          <h2 className="text-lg font-bold uppercase tracking-wider">Pemerintah Provinsi Daerah Khusus Ibukota Jakarta</h2>
-          <h3 className="text-base font-bold uppercase">Kota Administrasi Jakarta Timur • Kecamatan Cakung</h3>
-          <h1 className="text-xl font-extrabold uppercase mt-1">Kantor Kelurahan Penggilingan</h1>
-          <p className="text-xs mt-1">Jl. Penggilingan No. 1, RT 01/RW 07, Penggilingan, Kec. Cakung, Kota Jakarta Timur 13940</p>
-        </div>
+      {/* PRINT-ONLY OFFICIAL DOCUMENT VIEW (Formatted for high-res PDF generation, only rendered for Admin) */}
+      {isAdmin && (
+        <div className="print-only p-8 bg-white text-black">
+          {/* Official Kop Surat */}
+          <div className="text-center border-b-2 border-black pb-4 mb-6">
+            <h2 className="text-lg font-bold uppercase tracking-wider">Pemerintah Provinsi Daerah Khusus Ibukota Jakarta</h2>
+            <h3 className="text-base font-bold uppercase">Kota Administrasi Jakarta Timur • Kecamatan Cakung</h3>
+            <h1 className="text-xl font-extrabold uppercase mt-1">Kantor Kelurahan Penggilingan</h1>
+            <p className="text-xs mt-1">Jl. Penggilingan No. 1, RT 01/RW 07, Penggilingan, Kec. Cakung, Kota Jakarta Timur 13940</p>
+          </div>
 
-        <div className="text-center mb-6">
-          <h2 className="text-base font-bold uppercase underline">Rekapitulasi Data Usaha Mikro Terverifikasi (SpotSiNi)</h2>
-          <p className="text-xs text-slate-700 mt-1">Tanggal Cetak: {new Date().toLocaleDateString('id-ID', { dateStyle: 'full' })}</p>
-        </div>
+          <div className="text-center mb-6">
+            <h2 className="text-base font-bold uppercase underline">Rekapitulasi Data Usaha Mikro Terverifikasi (SpotSiNi)</h2>
+            <p className="text-xs text-slate-700 mt-1">Tanggal Cetak: {new Date().toLocaleDateString('id-ID', { dateStyle: 'full' })}</p>
+          </div>
 
-        <table className="w-full text-left text-xs border border-black border-collapse">
-          <thead>
-            <tr className="bg-slate-200">
-              <th className="border border-black p-2 text-center w-10">No</th>
-              <th className="border border-black p-2">Nama Usaha Mikro</th>
-              <th className="border border-black p-2">Pemilik</th>
-              <th className="border border-black p-2">Sektor</th>
-              <th className="border border-black p-2">Wilayah</th>
-              <th className="border border-black p-2">Alamat & Kontak</th>
-              <th className="border border-black p-2 text-center">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((item, index) => (
-              <tr key={item.id}>
-                <td className="border border-black p-1.5 text-center font-bold">{index + 1}</td>
-                <td className="border border-black p-1.5 font-bold">{item.nama_usaha}</td>
-                <td className="border border-black p-1.5">{item.nama_pemilik || '-'}</td>
-                <td className="border border-black p-1.5">{item.sektor_usaha}</td>
-                <td className="border border-black p-1.5">{item.rt}/{item.rw}</td>
-                <td className="border border-black p-1.5">{item.alamat_lengkap} ({item.no_telepon || '-'})</td>
-                <td className="border border-black p-1.5 text-center font-semibold">{item.status_verifikasi}</td>
+          <table className="w-full text-left text-xs border border-black border-collapse">
+            <thead>
+              <tr className="bg-slate-200">
+                <th className="border border-black p-2 text-center w-10">No</th>
+                <th className="border border-black p-2">Nama Usaha Mikro</th>
+                <th className="border border-black p-2">Pemilik</th>
+                <th className="border border-black p-2">Sektor</th>
+                <th className="border border-black p-2">Wilayah</th>
+                <th className="border border-black p-2">Alamat & Kontak</th>
+                <th className="border border-black p-2 text-center">Status</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filtered.map((item, index) => (
+                <tr key={item.id}>
+                  <td className="border border-black p-1.5 text-center font-bold">{index + 1}</td>
+                  <td className="border border-black p-1.5 font-bold">{item.nama_usaha}</td>
+                  <td className="border border-black p-1.5">{item.nama_pemilik || '-'}</td>
+                  <td className="border border-black p-1.5">{item.sektor_usaha}</td>
+                  <td className="border border-black p-1.5">{item.rt}/{item.rw}</td>
+                  <td className="border border-black p-1.5">{item.alamat_lengkap} ({item.no_telepon || '-'})</td>
+                  <td className="border border-black p-1.5 text-center font-semibold">{item.status_verifikasi}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
 
-        {/* Official Signatures */}
-        <div className="mt-12 flex justify-between text-xs">
-          <div className="text-center w-48">
-            <p>Mengetahui,</p>
-            <p className="font-bold">Lurah Penggilingan</p>
-            <div className="h-16" />
-            <p className="font-bold underline">(..............................................)</p>
-            <p>NIP. .....................................</p>
-          </div>
-          <div className="text-center w-48">
-            <p>Jakarta, {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-            <p className="font-bold">Admin Verifikasi SpotSiNi</p>
-            <div className="h-16" />
-            <p className="font-bold underline">( Tim Akselerator UKM )</p>
-            <p>Penggilingan Digital</p>
+          {/* Official Signatures */}
+          <div className="mt-12 flex justify-between text-xs">
+            <div className="text-center w-48">
+              <p>Mengetahui,</p>
+              <p className="font-bold">Lurah Penggilingan</p>
+              <div className="h-16" />
+              <p className="font-bold underline">(..............................................)</p>
+              <p>NIP. .....................................</p>
+            </div>
+            <div className="text-center w-48">
+              <p>Jakarta, {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+              <p className="font-bold">Admin Verifikasi SpotSiNi</p>
+              <div className="h-16" />
+              <p className="font-bold underline">( Tim Akselerator UKM )</p>
+              <p>Penggilingan Digital</p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
     </section>
   );

@@ -75,6 +75,14 @@ export async function signOutUser(): Promise<void> {
 }
 
 /**
+ * Helper to check if a user or profile has 'admin' privileges
+ */
+export function isUserAdmin(profileOrUser: { role?: string } | null | undefined): boolean {
+  if (!profileOrUser || !profileOrUser.role) return false;
+  return profileOrUser.role.toLowerCase() === 'admin';
+}
+
+/**
  * Synchronizes Supabase auth user with local database schema & storage
  */
 export async function syncSupabaseUserProfile(sessionUser: any): Promise<User> {
@@ -82,16 +90,26 @@ export async function syncSupabaseUserProfile(sessionUser: any): Promise<User> {
   const email = sessionUser.email || '';
   const name = metadata.full_name || metadata.name || email.split('@')[0] || 'Warga SpotSiNi';
   const avatar = metadata.avatar_url || metadata.picture || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80';
-  const role: UserRole = (metadata.role as UserRole) || 'customer';
+  let role: UserRole = (metadata.role as UserRole) || 'user';
 
-  // 1. Sync with Supabase public.profiles or public.users table if accessible
+  // 1. Sync with Supabase public.profiles table (with role column defaulting to 'user')
   try {
+    const { data: existingProfile } = await (supabase
+      .from('profiles')
+      .select('id, role, full_name, avatar_url')
+      .eq('id', sessionUser.id)
+      .maybeSingle() as any);
+
+    if (existingProfile?.role) {
+      role = existingProfile.role as UserRole;
+    }
+
     const profilePayload = {
       id: sessionUser.id,
       email,
       full_name: name,
       avatar_url: avatar,
-      role,
+      role: role || 'user',
       updated_at: new Date().toISOString()
     };
     await (supabase.from('profiles').upsert(profilePayload, { onConflict: 'id' }) as unknown as Promise<any>);

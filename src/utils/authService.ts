@@ -195,3 +195,11 @@ export function loginWithGoogleUser(customData?: {
   return newGoogleUser;
 }
 
+/**
+ * Check if the active user has admin privileges
+ */
+export function isUserAdmin(user: { role?: string } | null | undefined): boolean {
+  if (!user || !user.role) return false;
+  return user.role.toLowerCase() === 'admin';
+}
+

@@ -6,8 +6,10 @@ import { getImagesForBusiness } from '../utils/imageService';
 import { 
   ShieldCheck, Check, X, Edit3, MessageCircle, MapPin, 
   RefreshCw, Plus, AlertCircle, Eye, ChevronRight, CheckCircle2,
-  Sparkles, Award, Star, Trash2, ExternalLink, Image as ImageIcon
+  Sparkles, Award, Star, Trash2, ExternalLink, Image as ImageIcon,
+  FileText
 } from 'lucide-react';
+import { ReportSection } from './ReportSection';
 
 interface AdminVerificationPanelProps {
   businesses: Business[];
@@ -15,6 +17,7 @@ interface AdminVerificationPanelProps {
   onUpdateBusiness: (updated: Business) => void;
   onResetSeed: () => void;
   onSelectBusinessModal: (biz: Business) => void;
+  initialTab?: 'submissions' | 'vouchers' | 'reviews' | 'rekapitulasi';
 }
 
 export const AdminVerificationPanel: React.FC<AdminVerificationPanelProps> = ({
@@ -22,9 +25,14 @@ export const AdminVerificationPanel: React.FC<AdminVerificationPanelProps> = ({
   onUpdateStatus,
   onUpdateBusiness,
   onResetSeed,
-  onSelectBusinessModal
+  onSelectBusinessModal,
+  initialTab
 }) => {
-  const [adminTab, setAdminTab] = useState<'submissions' | 'vouchers' | 'reviews'>('submissions');
+  const [adminTab, setAdminTab] = useState<'submissions' | 'vouchers' | 'reviews' | 'rekapitulasi'>(initialTab || 'submissions');
+
+  React.useEffect(() => {
+    if (initialTab) setAdminTab(initialTab);
+  }, [initialTab]);
   const [activeFilter, setActiveFilter] = useState<VerificationStatus | 'Semua'>('Menunggu Verifikasi');
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectNote, setRejectNote] = useState<string>('');
@@ -166,6 +174,21 @@ export const AdminVerificationPanel: React.FC<AdminVerificationPanelProps> = ({
           <span>Moderasi Ulasan Warga</span>
           <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
             {reviews.length}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setAdminTab('rekapitulasi')}
+          className={`px-4 py-2.5 text-xs sm:text-sm font-bold rounded-t-xl transition-all border-b-2 flex items-center gap-2 whitespace-nowrap ${
+            adminTab === 'rekapitulasi'
+              ? 'border-emerald-700 text-emerald-800 bg-emerald-50/60'
+              : 'border-transparent text-gray-500 hover:text-gray-800'
+          }`}
+        >
+          <FileText className="w-4 h-4 text-emerald-700" />
+          <span>Rekapitulasi Data (PDF/Excel)</span>
+          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+            Resmi
           </span>
         </button>
       </div>
@@ -566,6 +589,13 @@ export const AdminVerificationPanel: React.FC<AdminVerificationPanelProps> = ({
               );
             })}
           </div>
+        </div>
+      )}
+
+      {/* TAB 4: REKAPITULASI DATA RESMI (PDF/EXCEL) */}
+      {adminTab === 'rekapitulasi' && (
+        <div className="-mt-8">
+          <ReportSection businesses={businesses} isAdmin={true} />
         </div>
       )}
 

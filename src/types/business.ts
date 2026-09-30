@@ -72,7 +72,7 @@ export interface SectorOption {
 }
 
 // User & Role models
-export type UserRole = 'customer' | 'owner' | 'admin';
+export type UserRole = 'customer' | 'owner' | 'admin' | 'user';
 
 export interface User {
   id: string;

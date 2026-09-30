@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Business, BusinessSector, VerificationStatus, User, AppNotification } from './types/business';
 import { loadBusinesses, saveBusinesses, resetToSeedData } from './utils/storage';
-import { getCurrentUser, logoutUser, updateUserPoints } from './utils/authService';
+import { getCurrentUser, logoutUser, updateUserPoints, isUserAdmin } from './utils/authService';
 import { getNotifications, markNotificationRead } from './utils/notificationService';
 
 import { Navbar } from './components/Navbar';
@@ -13,6 +13,7 @@ import { AboutUs } from './components/AboutUs';
 import { ReportSection } from './components/ReportSection';
 import { ContactAndSubmission } from './components/ContactAndSubmission';
 import { AdminVerificationPanel } from './components/AdminVerificationPanel';
+import { AdminGuard } from './components/AdminGuard';
 import { BusinessDetailModal } from './components/BusinessDetailModal';
 import { AuthModal } from './components/AuthModal';
 import { ReviewModal } from './components/ReviewModal';
@@ -60,10 +61,17 @@ export const App: React.FC = () => {
     const validTabs = [
       'beranda', 'katalog', 'peta', 'reward-center', 
       'dashboard-user', 'dashboard-owner', 'tentang', 
-      'faq', 'kontak', 'cetak', 'admin'
+      'faq', 'kontak', 'cetak', 'admin', 'admin-rekapitulasi'
     ];
+
+    const parseTabFromHash = (rawHash: string) => {
+      const clean = rawHash.replace(/^#\/?/, '');
+      if (clean === 'admin/rekapitulasi' || clean === 'admin-rekapitulasi') return 'admin-rekapitulasi';
+      return clean;
+    };
+
     if (!isOAuthCallback) {
-      const hash = window.location.hash.replace('#', '');
+      const hash = parseTabFromHash(window.location.hash);
       if (hash === 'faq') {
         setActiveTab('beranda');
         setTimeout(() => {
@@ -78,7 +86,7 @@ export const App: React.FC = () => {
     const handleHashChange = () => {
       // Don't treat OAuth tokens as a tab name
       if (window.location.hash.includes('access_token=')) return;
-      const current = window.location.hash.replace('#', '');
+      const current = parseTabFromHash(window.location.hash);
       if (current === 'faq') {
         setActiveTab('beranda');
         setTimeout(() => {
@@ -398,9 +406,15 @@ export const App: React.FC = () => {
           </div>
         )}
 
-        {/* TAB 5: CETAK PDF/EXCEL */}
-        {activeTab === 'cetak' && (
-          <ReportSection businesses={businesses} />
+        {/* TAB 5: REKAPITULASI RESMI (PDF/EXCEL) - Admin Protected */}
+        {(activeTab === 'cetak' || activeTab === 'admin-rekapitulasi') && (
+          <ReportSection
+            businesses={businesses}
+            isAdmin={isUserAdmin(currentUser)}
+            currentUser={currentUser}
+            onNavigate={handleNavigate}
+            onOpenAuth={() => setIsAuthModalOpen(true)}
+          />
         )}
 
         {/* TAB 6: KONTAK & AJUKAN USAHA */}
@@ -414,20 +428,30 @@ export const App: React.FC = () => {
           </div>
         )}
 
-        {/* TAB 7: ADMIN VERIFICATION PANEL */}
+        {/* TAB 7: ADMIN VERIFICATION PANEL - Admin Protected */}
         {activeTab === 'admin' && (
-          <AdminVerificationPanel
-            businesses={businesses}
-            onUpdateStatus={handleUpdateStatus}
-            onUpdateBusiness={handleUpdateBusiness}
-            onResetSeed={handleResetSeed}
-            onSelectBusinessModal={(biz) => setDetailBusiness(biz)}
-          />
+          isUserAdmin(currentUser) ? (
+            <AdminVerificationPanel
+              businesses={businesses}
+              onUpdateStatus={handleUpdateStatus}
+              onUpdateBusiness={handleUpdateBusiness}
+              onResetSeed={handleResetSeed}
+              onSelectBusinessModal={(biz) => setDetailBusiness(biz)}
+            />
+          ) : (
+            <AdminGuard
+              currentUser={currentUser}
+              onNavigate={handleNavigate}
+              onOpenAuth={() => setIsAuthModalOpen(true)}
+              title="Akses Terbatas: Panel Admin Kelurahan"
+              description="Panel verifikasi dan moderasi data usaha mikro ini khusus untuk Pengurus Kelurahan Penggilingan dengan role admin."
+            />
+          )
         )}
       </main>
 
       {/* Footer */}
-      <Footer onNavigate={handleNavigate} />
+      <Footer onNavigate={handleNavigate} currentUser={currentUser} />
 
       {/* Global Detail Usaha Overlay Modal */}
       <BusinessDetailModal

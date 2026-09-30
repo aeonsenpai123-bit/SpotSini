@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Menu, X, ShieldCheck, Bell, User as UserIcon, LogOut, Award, ChevronDown } from 'lucide-react';
+import { Menu, X, ShieldCheck, Bell, User as UserIcon, LogOut, Award, ChevronDown, FileText } from 'lucide-react';
 import { User, AppNotification } from '../types/business';
 import { NotificationCenter } from './NotificationCenter';
 import { BrandMark } from './BrandMark';
@@ -30,6 +30,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [notifOpen, setNotifOpen] = useState(false);
 
   const unreadNotifCount = notifications.filter(n => !n.is_read).length;
+  const isAdmin = currentUser?.role === 'admin';
 
   const navItems = [
     { id: 'beranda', label: 'Beranda' },
@@ -38,7 +39,6 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'reward-center', label: 'Reward Center' },
     { id: 'tentang', label: 'Tentang Kami' },
     { id: 'faq', label: 'FAQ' },
-    { id: 'cetak', label: 'Cetak PDF/Excel' },
     { id: 'kontak', label: 'Ajukan Usaha' },
   ];
 
@@ -107,6 +107,24 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </button>
               );
             })}
+
+            {isAdmin && (
+              <button
+                onClick={() => handleItemClick('admin-rekapitulasi')}
+                className={`px-3 py-1.5 rounded-xl text-xs xl:text-sm font-bold flex items-center gap-1.5 transition-all ${
+                  activeTab === 'admin-rekapitulasi'
+                    ? 'bg-amber-400 text-slate-950 shadow-sm font-extrabold'
+                    : 'bg-emerald-900/80 text-amber-200 hover:bg-emerald-800 hover:text-white border border-amber-300/40'
+                }`}
+                title="Akses Dokumen Rekapitulasi Resmi Khusus Admin"
+              >
+                <FileText className="w-3.5 h-3.5 text-amber-300" />
+                <span>Rekapitulasi</span>
+                <span className="text-[9px] bg-amber-400 text-slate-950 font-black px-1.5 py-0.2 rounded">
+                  ADMIN
+                </span>
+              </button>
+            )}
           </nav>
 
           {/* Right Action: Notifications & Auth User Pill */}
@@ -202,20 +220,32 @@ export const Navbar: React.FC<NavbarProps> = ({
                         </button>
                       )}
 
-                      <button
-                        onClick={() => handleItemClick('admin')}
-                        className="w-full text-left px-4 py-2 text-xs font-semibold hover:bg-emerald-50 text-gray-700 hover:text-emerald-800 flex items-center justify-between"
-                      >
-                        <div className="flex items-center gap-2">
-                          <ShieldCheck className="w-3.5 h-3.5 text-[#C85A32]" />
-                          <span>Panel Verifikasi</span>
-                        </div>
-                        {pendingCount > 0 && (
-                          <span className="text-[10px] font-bold px-1.5 py-0.2 bg-terracotta-500 text-white rounded-full">
-                            {pendingCount}
-                          </span>
-                        )}
-                      </button>
+                      {isAdmin && (
+                        <>
+                          <button
+                            onClick={() => handleItemClick('admin')}
+                            className="w-full text-left px-4 py-2 text-xs font-semibold hover:bg-emerald-50 text-gray-700 hover:text-emerald-800 flex items-center justify-between"
+                          >
+                            <div className="flex items-center gap-2">
+                              <ShieldCheck className="w-3.5 h-3.5 text-[#C85A32]" />
+                              <span>Panel Verifikasi Admin</span>
+                            </div>
+                            {pendingCount > 0 && (
+                              <span className="text-[10px] font-bold px-1.5 py-0.2 bg-[#C85A32] text-white rounded-full">
+                                {pendingCount}
+                              </span>
+                            )}
+                          </button>
+
+                          <button
+                            onClick={() => handleItemClick('admin-rekapitulasi')}
+                            className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-amber-50 text-amber-900 flex items-center gap-2"
+                          >
+                            <FileText className="w-3.5 h-3.5 text-amber-700" />
+                            <span>Panel Rekapitulasi Kelurahan</span>
+                          </button>
+                        </>
+                      )}
                     </div>
 
                     <div className="border-t border-gray-100 pt-1">
@@ -291,20 +321,32 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           )}
 
-          <button
-            onClick={() => handleItemClick('admin')}
-            className="w-full text-left px-3 py-2.5 rounded-xl text-sm font-semibold text-emerald-200 hover:text-white hover:bg-white/10 flex items-center justify-between"
-          >
-            <span className="flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-[#EEB79D]" />
-              Panel Verifikasi Admin
-            </span>
-            {pendingCount > 0 && (
-              <span className="px-2 py-0.5 bg-terracotta-500 text-white text-xs font-bold rounded-full">
-                {pendingCount}
-              </span>
-            )}
-          </button>
+          {isAdmin && (
+            <div className="pt-1 border-t border-white/10 space-y-1">
+              <button
+                onClick={() => handleItemClick('admin')}
+                className="w-full text-left px-3 py-2.5 rounded-xl text-sm font-semibold text-emerald-200 hover:text-white hover:bg-white/10 flex items-center justify-between"
+              >
+                <span className="flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-[#EEB79D]" />
+                  <span>Panel Verifikasi Admin</span>
+                </span>
+                {pendingCount > 0 && (
+                  <span className="px-2 py-0.5 bg-[#C85A32] text-white text-xs font-bold rounded-full">
+                    {pendingCount}
+                  </span>
+                )}
+              </button>
+
+              <button
+                onClick={() => handleItemClick('admin-rekapitulasi')}
+                className="w-full text-left px-3 py-2.5 rounded-xl text-sm font-bold text-amber-300 hover:bg-white/10 flex items-center gap-2"
+              >
+                <FileText className="w-4 h-4 text-amber-300" />
+                <span>Panel Rekapitulasi Kelurahan</span>
+              </button>
+            </div>
+          )}
         </div>
       )}
     </header>
