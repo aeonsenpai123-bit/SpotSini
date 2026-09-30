@@ -26,6 +26,7 @@ interface BusinessDetailModalProps {
   onOpenReview?: (biz: Business) => void;
   onRequireAuth?: () => void;
   onUserUpdated?: (user: User) => void;
+  onNavigate?: (tab: string) => void;
 }
 
 export const BusinessDetailModal: React.FC<BusinessDetailModalProps> = ({
@@ -35,12 +36,26 @@ export const BusinessDetailModal: React.FC<BusinessDetailModalProps> = ({
   currentUser,
   onOpenReview,
   onRequireAuth,
-  onUserUpdated
+  onUserUpdated,
+  onNavigate
 }) => {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [isFav, setIsFav] = useState(false);
   const [galleryImages, setGalleryImages] = useState<BusinessImage[]>([]);
   const [activeImageIndex, setActiveImageIndex] = useState<number>(0);
+
+  const handleFaqClick = () => {
+    onClose();
+    if (onNavigate) {
+      onNavigate('faq');
+    } else {
+      window.location.hash = 'faq';
+      setTimeout(() => {
+        const el = document.getElementById('faq');
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }, 150);
+    }
+  };
 
   // Real-time rating & Google Places API (New) sync state
   const [liveRating, setLiveRating] = useState<number | null>(null);
@@ -501,6 +516,15 @@ export const BusinessDetailModal: React.FC<BusinessDetailModalProps> = ({
                   <p className="text-[11px] text-slate-500">
                     {liveReviewCount > 0 ? `Berdasarkan ${liveReviewCount} ulasan publik terverifikasi di Google Maps` : 'Belum ada ulasan publik terverifikasi di Google Maps'}
                   </p>
+                  <button
+                    type="button"
+                    onClick={handleFaqClick}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:text-emerald-900 transition-colors mt-0.5 group cursor-pointer"
+                    title="Buka panduan lengkap reward poin di FAQ"
+                  >
+                    <span>💡 Pelajari cara kerja poin (FAQ)</span>
+                    <span className="transition-transform group-hover:translate-x-0.5">→</span>
+                  </button>
                 </div>
               </div>
 
@@ -738,7 +762,7 @@ export const BusinessDetailModal: React.FC<BusinessDetailModalProps> = ({
           </div>
 
           {/* Bottom Footer Navigation */}
-          <div className="pt-4 border-t border-slate-200 flex items-center justify-between">
+          <div className="pt-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2">
             <button
               type="button"
               onClick={onClose}
@@ -747,9 +771,18 @@ export const BusinessDetailModal: React.FC<BusinessDetailModalProps> = ({
               <ArrowLeft className="w-4 h-4 text-emerald-800" />
               <span>Kembali ke Katalog Usaha</span>
             </button>
-            <span className="text-[11px] text-slate-400">
-              SpotSiNi Penggilingan
-            </span>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleFaqClick}
+                className="text-[11px] font-semibold text-emerald-700 hover:text-emerald-900 hover:underline cursor-pointer"
+              >
+                Tanya Jawab (FAQ)
+              </button>
+              <span className="text-[11px] text-slate-400">
+                SpotSiNi Penggilingan
+              </span>
+            </div>
           </div>
 
         </div>

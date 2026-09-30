@@ -20,6 +20,7 @@ import { UserDashboard } from './components/UserDashboard';
 import { OwnerDashboard } from './components/OwnerDashboard';
 import { RewardCenter } from './components/RewardCenter';
 import { Footer } from './components/Footer';
+import { FAQSection } from './components/FAQSection';
 import { NotificationPermissionBanner } from './components/NotificationPermissionBanner';
 import { initRealtimeSubscriptions, sendBrowserNotification, initAuthSubscription, signOutUser } from './utils/supabaseClient';
 
@@ -59,11 +60,17 @@ export const App: React.FC = () => {
     const validTabs = [
       'beranda', 'katalog', 'peta', 'reward-center', 
       'dashboard-user', 'dashboard-owner', 'tentang', 
-      'kontak', 'cetak', 'admin'
+      'faq', 'kontak', 'cetak', 'admin'
     ];
     if (!isOAuthCallback) {
       const hash = window.location.hash.replace('#', '');
-      if (validTabs.includes(hash)) {
+      if (hash === 'faq') {
+        setActiveTab('beranda');
+        setTimeout(() => {
+          const el = document.getElementById('faq');
+          if (el) el.scrollIntoView({ behavior: 'smooth' });
+        }, 300);
+      } else if (validTabs.includes(hash)) {
         setActiveTab(hash);
       }
     }
@@ -72,6 +79,14 @@ export const App: React.FC = () => {
       // Don't treat OAuth tokens as a tab name
       if (window.location.hash.includes('access_token=')) return;
       const current = window.location.hash.replace('#', '');
+      if (current === 'faq') {
+        setActiveTab('beranda');
+        setTimeout(() => {
+          const el = document.getElementById('faq');
+          if (el) el.scrollIntoView({ behavior: 'smooth' });
+        }, 150);
+        return;
+      }
       if (validTabs.includes(current)) {
         setActiveTab(current);
       }
@@ -125,6 +140,17 @@ export const App: React.FC = () => {
 
   // Update hash when tab changes
   const handleNavigate = (tab: string) => {
+    if (tab === 'faq') {
+      setActiveTab('beranda');
+      window.location.hash = 'faq';
+      setTimeout(() => {
+        const el = document.getElementById('faq');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
+      return;
+    }
     setActiveTab(tab);
     window.location.hash = tab;
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -280,6 +306,9 @@ export const App: React.FC = () => {
               availableRws={availableRws}
               businesses={businesses}
             />
+
+            {/* Kenal Lebih Dekat dengan SpotsIni (FAQ 5W + 1H) */}
+            <FAQSection onNavigate={handleNavigate} />
           </div>
         )}
 
@@ -409,6 +438,7 @@ export const App: React.FC = () => {
         onOpenReview={handleOpenReview}
         onRequireAuth={() => setIsAuthModalOpen(true)}
         onUserUpdated={(u) => setCurrentUser(u)}
+        onNavigate={handleNavigate}
       />
 
       {/* Auth Modal (Register / Login / Demo Accounts) */}

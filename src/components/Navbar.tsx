@@ -37,6 +37,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'peta', label: 'Peta Interaktif' },
     { id: 'reward-center', label: 'Reward Center' },
     { id: 'tentang', label: 'Tentang Kami' },
+    { id: 'faq', label: 'FAQ' },
     { id: 'cetak', label: 'Cetak PDF/Excel' },
     { id: 'kontak', label: 'Ajukan Usaha' },
   ];
