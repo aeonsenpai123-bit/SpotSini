@@ -254,9 +254,9 @@ export const BusinessDetailModal: React.FC<BusinessDetailModalProps> = ({
     : '';
 
   const hasCoordinates = business.latitude !== null && business.longitude !== null;
-  const gpsUrl = hasCoordinates
+  const gpsUrl = business.maps_url || business.mapsUrl || (hasCoordinates
     ? `https://www.google.com/maps/dir/?api=1&destination=${business.latitude},${business.longitude}`
-    : business.maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(business.nama_usaha + ' ' + business.alamat_lengkap)}`;
+    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(business.nama_usaha + ' ' + business.alamat_lengkap)}`);
 
   // Gallery photo list
   const allPhotos: string[] = [];

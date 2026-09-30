@@ -204,11 +204,11 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({
 
             {/* Terracotta Buka Google Maps Button */}
             <a
-              href={business.maps_url || '#'}
+              href={business.maps_url || business.mapsUrl || '#'}
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => {
-                if (!business.maps_url) e.preventDefault();
+                if (!business.maps_url && !business.mapsUrl) e.preventDefault();
                 e.stopPropagation();
               }}
               className="py-2.5 px-3 rounded-xl bg-[#C85A32] hover:bg-[#B34D27] text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-xs active:scale-98 text-center"

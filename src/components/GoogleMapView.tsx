@@ -144,7 +144,7 @@ export const GoogleMapView: React.FC<GoogleMapViewProps> = ({
 
             const photoUrl = getPrimaryImageForBusiness(biz.id) || biz.foto_usaha || '';
             const whatsappUrl = biz.no_telepon ? getBusinessWhatsAppUrl(biz.no_telepon, biz.nama_usaha) : '';
-            const gpsUrl = `https://www.google.com/maps/dir/?api=1&destination=${biz.latitude},${biz.longitude}`;
+            const gpsUrl = biz.maps_url || biz.mapsUrl || `https://www.google.com/maps/dir/?api=1&destination=${biz.latitude},${biz.longitude}`;
             const ratingText = biz.google_rating || biz.rating_avg || 4.8;
 
             const contentDiv = document.createElement('div');
