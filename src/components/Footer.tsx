@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, Heart, ShieldCheck, FileText } from 'lucide-react';
+import { MapPin, Heart, ShieldCheck, FileText, MessageCircle } from 'lucide-react';
 import { BrandMark } from './BrandMark';
 import { User } from '../types/business';
 import { isUserAdmin } from '../utils/authService';
@@ -109,6 +109,17 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, currentUser }) => {
                   </li>
                 </>
               )}
+              <li>
+                <a
+                  href="https://whatsapp.com/channel/0029Vb9EfNKJZg449M0D5D3B"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-white transition-colors flex items-center gap-1.5 text-emerald-200"
+                >
+                  <MessageCircle className="w-3.5 h-3.5 text-[#25D366] shrink-0" />
+                  <span>WhatsApp Channel Usaha Mikro Penggilingan</span>
+                </a>
+              </li>
               <li>
                 <a href="https://kel-penggilingan.jakarta.go.id" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">
                   Portal Resmi Kelurahan

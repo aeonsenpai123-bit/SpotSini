@@ -22,6 +22,7 @@ import { OwnerDashboard } from './components/OwnerDashboard';
 import { RewardCenter } from './components/RewardCenter';
 import { Footer } from './components/Footer';
 import { FAQSection } from './components/FAQSection';
+import { ChannelBanner } from './components/ChannelBanner';
 import { NotificationPermissionBanner } from './components/NotificationPermissionBanner';
 import { initRealtimeSubscriptions, sendBrowserNotification, initAuthSubscription, signOutUser } from './utils/supabaseClient';
 
@@ -314,6 +315,9 @@ export const App: React.FC = () => {
               availableRws={availableRws}
               businesses={businesses}
             />
+
+            {/* WhatsApp Channel Banner Usaha Mikro Penggilingan */}
+            <ChannelBanner />
 
             {/* Kenal Lebih Dekat dengan SpotsIni (FAQ 5W + 1H) */}
             <FAQSection onNavigate={handleNavigate} />

@@ -60,12 +60,41 @@ const FAQ_DATA: FAQItem[] = [
       '3. Sistem kami mencocokkan nama akun Anda dengan ulasan Google Maps terbaru. Jika cocok, poin langsung ditambahkan dan dapat Anda tukarkan dengan berbagai voucher serta benefit komunitas.'
     ],
     icon: <Award className="w-5 h-5 text-teal-700" />
+  },
+  {
+    tag: 'CHANNEL',
+    tagColor: 'bg-[#E7FCE8] text-[#134E39] border-[#25D366]',
+    question: 'Bagaimana cara mendapatkan pembaruan info bazar dan program usaha mikro di Penggilingan?',
+    answer:
+      'Anda dapat mengikuti pembaruan rutin mengenai pelatihan, kegiatan bazar, dan promosi usaha lokal melalui tautan resmi WhatsApp Channel Usaha Mikro kami di https://whatsapp.com/channel/0029Vb9EfNKJZg449M0D5D3B.',
+    icon: <MessageCircle className="w-5 h-5 text-[#25D366]" />
   }
 ];
 
 interface FAQSectionProps {
   onNavigate?: (tab: string) => void;
 }
+
+const renderAnswerText = (text: string) => {
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = text.split(urlRegex);
+  return parts.map((part, i) => {
+    if (part.match(urlRegex)) {
+      return (
+        <a
+          key={i}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-emerald-700 hover:text-emerald-900 font-bold underline break-all inline-flex items-center gap-1"
+        >
+          <span>{part}</span>
+        </a>
+      );
+    }
+    return part;
+  });
+};
 
 export const FAQSection: React.FC<FAQSectionProps> = ({ onNavigate }) => {
   // First item open by default
@@ -144,13 +173,13 @@ export const FAQSection: React.FC<FAQSectionProps> = ({ onNavigate }) => {
                         <div className="space-y-2 bg-emerald-50/50 p-4 rounded-xl border border-emerald-200/70">
                           {item.answer.map((step, sIdx) => (
                             <p key={sIdx} className="font-medium text-slate-800">
-                              {step}
+                              {renderAnswerText(step)}
                             </p>
                           ))}
                         </div>
                       ) : (
                         <p className="bg-slate-50/70 p-4 rounded-xl border border-slate-200/60 font-normal">
-                          {item.answer}
+                          {renderAnswerText(item.answer)}
                         </p>
                       )}
                     </div>
