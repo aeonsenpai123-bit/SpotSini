@@ -263,6 +263,25 @@ export const ContactAndSubmission: React.FC<ContactAndSubmissionProps> = ({
                 </p>
               </div>
             </div>
+
+            <div className="flex items-start gap-3.5 p-3 rounded-2xl bg-[#F8F9F8]">
+              <div className="w-8 h-8 rounded-xl bg-[#134E39] text-white flex items-center justify-center flex-shrink-0">
+                <Instagram className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="text-[11px] font-bold text-slate-500 uppercase">Instagram Resmi</span>
+                <p className="font-semibold text-slate-800 leading-snug mt-0.5">
+                  <a
+                    href="https://www.instagram.com/spotsini"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-emerald-700 hover:underline transition-colors inline-flex items-center gap-1 text-slate-800 font-semibold"
+                  >
+                    <span>@spotsini</span>
+                  </a>
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* Verification Benefit notice */}
