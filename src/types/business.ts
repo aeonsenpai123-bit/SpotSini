@@ -51,8 +51,10 @@ export interface Business {
   rating_avg?: number; // 1.0 - 5.0
   review_count?: number;
   view_count?: number;
-  // Google Maps Integration fields (Task 3, 4, 9)
+  // Google Maps Integration fields (Task 3, 4, 9, 11)
   google_place_id?: string;
+  placeId?: string;
+  mapsUrl?: string;
   google_rating?: number;
   google_review_count?: number;
   google_reviews?: GooglePlaceReview[];

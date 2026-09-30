@@ -1,6 +1,11 @@
 import { Business } from "../types/business";
 
-export const INITIAL_BUSINESSES: Business[] = [
+/**
+ * Dataset 30 Usaha Mikro Kelurahan Penggilingan (SpotSiNi)
+ * Terverifikasi dengan Google Places API (New) Place ID & Google Maps URI.
+ * Di-generate otomatis oleh scripts/syncPlacesData.mjs
+ */
+export const SPOTS_DATA: (Business & { placeId: string; mapsUrl: string })[] = [
   {
     "id": "BIZ-PGL-001",
     "no": 1,
@@ -903,3 +908,7 @@ export const INITIAL_BUSINESSES: Business[] = [
     "google_review_count": 25
   }
 ];
+
+export const INITIAL_BUSINESSES: Business[] = SPOTS_DATA as Business[];
+
+export default SPOTS_DATA;
