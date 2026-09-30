@@ -3,7 +3,7 @@ import { Business } from "../types/business";
 /**
  * Dataset 30 Usaha Mikro Kelurahan Penggilingan (SpotSiNi)
  * Terverifikasi dengan Google Places API (New) Place ID & Google Maps URI.
- * Di-generate otomatis oleh scripts/syncPlacesData.mjs
+ * Rating & jumlah review di-fetch secara real-time dari Google Places API (tanpa nilai mock hardcoded).
  */
 export const SPOTS_DATA: (Business & { placeId: string; mapsUrl: string })[] = [
   {
@@ -20,8 +20,8 @@ export const SPOTS_DATA: (Business & { placeId: string; mapsUrl: string })[] = [
     "longitude": 106.9405,
     "maps_url": "https://maps.app.goo.gl/uFqidQ2zc3Auy5rm9",
     "google_place_id": "ChIJ5_q818iMaS4RWbY9U3z9rXQ",
-    "google_rating": 4.8,
-    "google_review_count": 54,
+    "google_rating": null,
+    "google_review_count": 0,
     "foto_usaha": "/images/businesses/BIZ-PGL-001.jpg",
     "status_verifikasi": "Terverifikasi",
     "produk": "Aneka Rujak Buah & Jambu Kristal Segar Bumbu Rujak Pedas",
@@ -29,8 +29,8 @@ export const SPOTS_DATA: (Business & { placeId: string; mapsUrl: string })[] = [
     "tanggal_input": "2026-09-01",
     "tanggal_verifikasi": "2026-09-02",
     "diverifikasi_oleh": "Admin Kelurahan Penggilingan",
-    "rating_avg": 4.8,
-    "review_count": 54,
+    "rating_avg": null,
+    "review_count": 0,
     "growth_score": 85,
     "view_count": 120,
     "placeId": "ChIJ5_q818iMaS4RWbY9U3z9rXQ",
@@ -56,15 +56,15 @@ export const SPOTS_DATA: (Business & { placeId: string; mapsUrl: string })[] = [
     "tanggal_input": "2026-09-01",
     "tanggal_verifikasi": "2026-09-02",
     "diverifikasi_oleh": "Admin Kelurahan Penggilingan",
-    "rating_avg": 4.7,
-    "review_count": 21,
+    "rating_avg": null,
+    "review_count": 0,
     "growth_score": 86,
     "view_count": 149,
-    "google_place_id": "ChIJ2SFP1VyLaS4RCJLe_bbgMf4",
-    "placeId": "ChIJ2SFP1VyLaS4RCJLe_bbgMf4",
+    "google_place_id": "ChIJb6mYQdGMaS4Ro8Z1xV-5W9Q",
+    "placeId": "ChIJb6mYQdGMaS4Ro8Z1xV-5W9Q",
     "mapsUrl": "https://www.google.com/maps/place/Ayam+Bakar+Pak+Yono+Pik,+Blk.+B+Jl.+Pik+No.78+4,+RT.4%2FRW.10,+Penggilingan,+Kec.+Cakung,+Kota+Jakarta+Timur,+Daerah+Khusus+Ibukota+Jakarta+13940/data=!4m2!3m1!1s0x2e698b5cd54f21d9:0xfe31e0b6fdde9208!18m1!1e1",
-    "google_rating": 4.7,
-    "google_review_count": 21
+    "google_rating": null,
+    "google_review_count": 0
   },
   {
     "id": "BIZ-PGL-003",
@@ -86,15 +86,15 @@ export const SPOTS_DATA: (Business & { placeId: string; mapsUrl: string })[] = [
     "tanggal_input": "2026-09-01",
     "tanggal_verifikasi": "2026-09-02",
     "diverifikasi_oleh": "Admin Kelurahan Penggilingan",
-    "rating_avg": 4.9,
-    "review_count": 34,
+    "rating_avg": null,
+    "review_count": 0,
     "growth_score": 97,
     "view_count": 178,
     "google_place_id": "ChIJW3ugIcSLaS4R7FeTwcypZrU",
     "placeId": "ChIJW3ugIcSLaS4R7FeTwcypZrU",
     "mapsUrl": "https://www.google.com/maps/place/Potato+curly+Crunch+penggilingan+pik,+Jl.+Pik+Penggilingan.2+Blok+A,+RT.1%2FRW.10,+Penggilingan,+Kec.+Cakung,+Kota+Jakarta+Timur,+Sebrang+pospol+PIK+penggilingan,+RT.1%2FRW.10,+Penggilingan,+Kec.+Cakung,+Jakarta,+Daerah+Khusus+Ibukota+Jakarta+13940/data=!4m2!3m1!1s0x2e698bc421a07b5b:0xb566a9ccc19357ec!18m1!1e1",
-    "google_rating": 4.9,
-    "google_review_count": 34
+    "google_rating": null,
+    "google_review_count": 0
   },
   {
     "id": "BIZ-PGL-004",
@@ -116,15 +116,15 @@ export const SPOTS_DATA: (Business & { placeId: string; mapsUrl: string })[] = [
     "tanggal_input": "2026-09-01",
     "tanggal_verifikasi": "2026-09-02",
     "diverifikasi_oleh": "Admin Kelurahan Penggilingan",
-    "rating_avg": 4.6,
-    "review_count": 47,
+    "rating_avg": null,
+    "review_count": 0,
     "growth_score": 85,
     "view_count": 207,
     "google_place_id": "ChIJ4QTsPgCLaS4RE923Axxel90",
     "placeId": "ChIJ4QTsPgCLaS4RE923Axxel90",
     "mapsUrl": "https://www.google.com/maps/place/Yo+Londre,+Jl.+Marzuki+8+No.RT+09%2F014,+RT.9%2FRW.14,+Penggilingan,+Kec.+Cakung,+Kota+Jakarta+Timur,+Daerah+Khusus+Ibukota+Jakarta+13940/@-6.2079544,106.9302368,3a,51.5y,199.53h,79.07t/data=!3m5!1e1!3m3!1skWxIWQ51JtOPNcAqhOA6KQ!2e0!6shttps:%2F%2Fstreetviewpixels-pa.googleapis.com%2Fv1%2Fthumbnail%3Fpanoid%3DkWxIWQ51JtOPNcAqhOA6KQ%26w%3D900%26h%3D600%26ll%3D0.0,0.0%26yaw%3D199.0%26pitch%3D11.0%26thumbfov%3D71%26cb_client%3Dgmm.iv.android!4m2!3m1!1s0x2e698b003eec04e1:0xdd975e1c03b7dd13",
-    "google_rating": 4.6,
-    "google_review_count": 47
+    "google_rating": null,
+    "google_review_count": 0
   },
   {
     "id": "BIZ-PGL-005",
@@ -146,15 +146,15 @@ export const SPOTS_DATA: (Business & { placeId: string; mapsUrl: string })[] = [
     "tanggal_input": "2026-09-01",
     "tanggal_verifikasi": "2026-09-02",
     "diverifikasi_oleh": "Admin Kelurahan Penggilingan",
-    "rating_avg": 4.8,
-    "review_count": 20,
+    "rating_avg": null,
+    "review_count": 0,
     "growth_score": 96,
     "view_count": 236,
     "google_place_id": "ChIJn9qVLACLaS4RW1JkutnkqBo",
     "placeId": "ChIJn9qVLACLaS4RW1JkutnkqBo",
     "mapsUrl": "https://www.google.com/maps/place/Cireng+Bang+Fajar/@-6.2039703,106.9109014,14z/data=!4m7!3m6!1s0x2e698b002c95da9f:0x1aa8e4d9ba64525b!8m2!3d-6.2043663!4d106.9317495!15sChFDaXJlbmcgQmFuZyBGYWphcpIBEWJydW5jaF9yZXN0YXVyYW504AEA!16s%2Fg%2F11zfk2n0xd",
-    "google_rating": 4.8,
-    "google_review_count": 20
+    "google_rating": null,
+    "google_review_count": 0
   },
   {
     "id": "BIZ-PGL-006",
@@ -176,15 +176,15 @@ export const SPOTS_DATA: (Business & { placeId: string; mapsUrl: string })[] = [
     "tanggal_input": "2026-09-01",
     "tanggal_verifikasi": "2026-09-02",
     "diverifikasi_oleh": "Admin Kelurahan Penggilingan",
-    "rating_avg": 4.5,
-    "review_count": 33,
+    "rating_avg": null,
+    "review_count": 0,
     "growth_score": 84,
     "view_count": 265,
     "google_place_id": "ChIJK2-KWQCLaS4RgpOfYVkGkk8",
     "placeId": "ChIJK2-KWQCLaS4RgpOfYVkGkk8",
     "mapsUrl": "https://www.google.com/maps/place/Es+Teler+Creamy+PIK+Isna/@-6.2038856,106.9291649,17z/data=!3m1!4b1!4m6!3m5!1s0x2e698b00598a6f2b:0x4f920659619f9382!8m2!3d-6.2038856!4d106.9317398!16s%2Fg%2F11zfk274t9",
-    "google_rating": 4.5,
-    "google_review_count": 33
+    "google_rating": null,
+    "google_review_count": 0
   },
   {
     "id": "BIZ-PGL-007",
@@ -206,15 +206,15 @@ export const SPOTS_DATA: (Business & { placeId: string; mapsUrl: string })[] = [
     "tanggal_input": "2026-09-01",
     "tanggal_verifikasi": "2026-09-02",
     "diverifikasi_oleh": "Admin Kelurahan Penggilingan",
-    "rating_avg": 4.7,
-    "review_count": 46,
+    "rating_avg": null,
+    "review_count": 0,
     "growth_score": 95,
     "view_count": 294,
     "google_place_id": "ChIJb6mYQdGMaS4RyPZu7_atCf0",
     "placeId": "ChIJb6mYQdGMaS4RyPZu7_atCf0",
     "mapsUrl": "https://maps.google.com/?cid=18233295842476750536",
-    "google_rating": 4.7,
-    "google_review_count": 46
+    "google_rating": null,
+    "google_review_count": 0
   },
   {
     "id": "BIZ-PGL-008",
@@ -236,15 +236,15 @@ export const SPOTS_DATA: (Business & { placeId: string; mapsUrl: string })[] = [
     "tanggal_input": "2026-09-01",
     "tanggal_verifikasi": "2026-09-02",
     "diverifikasi_oleh": "Admin Kelurahan Penggilingan",
-    "rating_avg": 4.9,
-    "review_count": 19,
+    "rating_avg": null,
+    "review_count": 0,
     "growth_score": 83,
     "view_count": 323,
     "google_place_id": "ChIJb6mYQdGMaS4RCl3uMHQK_F4",
     "placeId": "ChIJb6mYQdGMaS4RCl3uMHQK_F4",
     "mapsUrl": "https://maps.google.com/?cid=6844357027849723146",
-    "google_rating": 4.9,
-    "google_review_count": 19
+    "google_rating": null,
+    "google_review_count": 0
   },
   {
     "id": "BIZ-PGL-009",
@@ -266,15 +266,15 @@ export const SPOTS_DATA: (Business & { placeId: string; mapsUrl: string })[] = [
     "tanggal_input": "2026-09-01",
     "tanggal_verifikasi": "2026-09-02",
     "diverifikasi_oleh": "Admin Kelurahan Penggilingan",
-    "rating_avg": 4.6,
-    "review_count": 32,
+    "rating_avg": null,
+    "review_count": 0,
     "growth_score": 94,
     "view_count": 352,
     "google_place_id": "ChIJb6mYQdGMaS4R5QuaQVOny8E",
     "placeId": "ChIJb6mYQdGMaS4R5QuaQVOny8E",
     "mapsUrl": "https://maps.google.com/?cid=13964439045617093605",
-    "google_rating": 4.6,
-    "google_review_count": 32
+    "google_rating": null,
+    "google_review_count": 0
   },
   {
     "id": "BIZ-PGL-010",
@@ -296,15 +296,15 @@ export const SPOTS_DATA: (Business & { placeId: string; mapsUrl: string })[] = [
     "tanggal_input": "2026-09-01",
     "tanggal_verifikasi": "2026-09-02",
     "diverifikasi_oleh": "Admin Kelurahan Penggilingan",
-    "rating_avg": 4.8,
-    "review_count": 45,
+    "rating_avg": null,
+    "review_count": 0,
     "growth_score": 82,
     "view_count": 381,
     "google_place_id": "ChIJb6mYQdGMaS4RdmWesrL5VYU",
     "placeId": "ChIJb6mYQdGMaS4RdmWesrL5VYU",
     "mapsUrl": "https://maps.google.com/?cid=9607859925961041270",
-    "google_rating": 4.8,
-    "google_review_count": 45
+    "google_rating": null,
+    "google_review_count": 0
   },
   {
     "id": "BIZ-PGL-012",
@@ -326,15 +326,15 @@ export const SPOTS_DATA: (Business & { placeId: string; mapsUrl: string })[] = [
     "tanggal_input": "2026-09-01",
     "tanggal_verifikasi": "2026-09-02",
     "diverifikasi_oleh": "Admin Kelurahan Penggilingan",
-    "rating_avg": 4.5,
-    "review_count": 18,
+    "rating_avg": null,
+    "review_count": 0,
     "growth_score": 93,
     "view_count": 410,
     "google_place_id": "ChIJb6mYQdGMaS4RMn7QAy3anCE",
     "placeId": "ChIJb6mYQdGMaS4RMn7QAy3anCE",
     "mapsUrl": "https://maps.google.com/?cid=2422050586490863154",
-    "google_rating": 4.5,
-    "google_review_count": 18
+    "google_rating": null,
+    "google_review_count": 0
   },
   {
     "id": "BIZ-PGL-013",
@@ -356,15 +356,15 @@ export const SPOTS_DATA: (Business & { placeId: string; mapsUrl: string })[] = [
     "tanggal_input": "2026-09-01",
     "tanggal_verifikasi": "2026-09-02",
     "diverifikasi_oleh": "Admin Kelurahan Penggilingan",
-    "rating_avg": 4.7,
-    "review_count": 31,
+    "rating_avg": null,
+    "review_count": 0,
     "growth_score": 81,
     "view_count": 439,
     "google_place_id": "ChIJb6mYQdGMaS4RBStkqXum_SI",
     "placeId": "ChIJb6mYQdGMaS4RBStkqXum_SI",
     "mapsUrl": "https://maps.google.com/?cid=2521354416450448133",
-    "google_rating": 4.7,
-    "google_review_count": 31
+    "google_rating": null,
+    "google_review_count": 0
   },
   {
     "id": "BIZ-PGL-014",
@@ -386,15 +386,15 @@ export const SPOTS_DATA: (Business & { placeId: string; mapsUrl: string })[] = [
     "tanggal_input": "2026-09-01",
     "tanggal_verifikasi": "2026-09-02",
     "diverifikasi_oleh": "Admin Kelurahan Penggilingan",
-    "rating_avg": 4.9,
-    "review_count": 44,
+    "rating_avg": null,
+    "review_count": 0,
     "growth_score": 92,
     "view_count": 468,
     "google_place_id": "ChIJb6mYQdGMaS4RCN1Jlf--K8Y",
     "placeId": "ChIJb6mYQdGMaS4RCN1Jlf--K8Y",
     "mapsUrl": "https://maps.google.com/?cid=14279717048438873352",
-    "google_rating": 4.9,
-    "google_review_count": 44
+    "google_rating": null,
+    "google_review_count": 0
   },
   {
     "id": "BIZ-PGL-016",
@@ -416,15 +416,15 @@ export const SPOTS_DATA: (Business & { placeId: string; mapsUrl: string })[] = [
     "tanggal_input": "2026-09-01",
     "tanggal_verifikasi": "2026-09-02",
     "diverifikasi_oleh": "Admin Kelurahan Penggilingan",
-    "rating_avg": 4.6,
-    "review_count": 17,
+    "rating_avg": null,
+    "review_count": 0,
     "growth_score": 80,
     "view_count": 147,
     "google_place_id": "ChIJb6mYQdGMaS4R4mlygEI6sWg",
     "placeId": "ChIJb6mYQdGMaS4R4mlygEI6sWg",
     "mapsUrl": "https://maps.google.com/?cid=7543874908119525858",
-    "google_rating": 4.6,
-    "google_review_count": 17
+    "google_rating": null,
+    "google_review_count": 0
   },
   {
     "id": "BIZ-PGL-018",
@@ -446,15 +446,15 @@ export const SPOTS_DATA: (Business & { placeId: string; mapsUrl: string })[] = [
     "tanggal_input": "2026-09-01",
     "tanggal_verifikasi": "2026-09-02",
     "diverifikasi_oleh": "Admin Kelurahan Penggilingan",
-    "rating_avg": 4.8,
-    "review_count": 30,
+    "rating_avg": null,
+    "review_count": 0,
     "growth_score": 91,
     "view_count": 176,
     "google_place_id": "ChIJb6mYQdGMaS4R7MXxH_Lo1oA",
     "placeId": "ChIJb6mYQdGMaS4R7MXxH_Lo1oA",
     "mapsUrl": "https://maps.google.com/?cid=9283863808486524396",
-    "google_rating": 4.8,
-    "google_review_count": 30
+    "google_rating": null,
+    "google_review_count": 0
   },
   {
     "id": "BIZ-PGL-019",
@@ -476,15 +476,15 @@ export const SPOTS_DATA: (Business & { placeId: string; mapsUrl: string })[] = [
     "tanggal_input": "2026-09-01",
     "tanggal_verifikasi": "2026-09-02",
     "diverifikasi_oleh": "Admin Kelurahan Penggilingan",
-    "rating_avg": 4.5,
-    "review_count": 43,
+    "rating_avg": null,
+    "review_count": 0,
     "growth_score": 79,
     "view_count": 205,
     "google_place_id": "ChIJb6mYQdGMaS4RNmLfEc8oixY",
     "placeId": "ChIJb6mYQdGMaS4RNmLfEc8oixY",
     "mapsUrl": "https://maps.google.com/?cid=1624436960420389430",
-    "google_rating": 4.5,
-    "google_review_count": 43
+    "google_rating": null,
+    "google_review_count": 0
   },
   {
     "id": "BIZ-PGL-020",
@@ -506,15 +506,15 @@ export const SPOTS_DATA: (Business & { placeId: string; mapsUrl: string })[] = [
     "tanggal_input": "2026-09-01",
     "tanggal_verifikasi": "2026-09-02",
     "diverifikasi_oleh": "Admin Kelurahan Penggilingan",
-    "rating_avg": 4.7,
-    "review_count": 16,
+    "rating_avg": null,
+    "review_count": 0,
     "growth_score": 90,
     "view_count": 234,
     "google_place_id": "ChIJb6mYQdGMaS4RyMxqBk-bfdI",
     "placeId": "ChIJb6mYQdGMaS4RyMxqBk-bfdI",
     "mapsUrl": "https://maps.google.com/?cid=15167449883766082760",
-    "google_rating": 4.7,
-    "google_review_count": 16
+    "google_rating": null,
+    "google_review_count": 0
   },
   {
     "id": "BIZ-PGL-021",
@@ -536,15 +536,15 @@ export const SPOTS_DATA: (Business & { placeId: string; mapsUrl: string })[] = [
     "tanggal_input": "2026-09-01",
     "tanggal_verifikasi": "2026-09-02",
     "diverifikasi_oleh": "Admin Kelurahan Penggilingan",
-    "rating_avg": 4.9,
-    "review_count": 29,
+    "rating_avg": null,
+    "review_count": 0,
     "growth_score": 78,
     "view_count": 263,
     "google_place_id": "ChIJb6mYQdGMaS4RbA1dn-jkevc",
     "placeId": "ChIJb6mYQdGMaS4RbA1dn-jkevc",
     "mapsUrl": "https://maps.google.com/?cid=17832817362284121452",
-    "google_rating": 4.9,
-    "google_review_count": 29
+    "google_rating": null,
+    "google_review_count": 0
   },
   {
     "id": "BIZ-PGL-022",
@@ -566,15 +566,15 @@ export const SPOTS_DATA: (Business & { placeId: string; mapsUrl: string })[] = [
     "tanggal_input": "2026-09-01",
     "tanggal_verifikasi": "2026-09-02",
     "diverifikasi_oleh": "Admin Kelurahan Penggilingan",
-    "rating_avg": 4.6,
-    "review_count": 42,
+    "rating_avg": null,
+    "review_count": 0,
     "growth_score": 89,
     "view_count": 292,
     "google_place_id": "ChIJb6mYQdGMaS4R4fKkpQqVaMo",
     "placeId": "ChIJb6mYQdGMaS4R4fKkpQqVaMo",
     "mapsUrl": "https://maps.google.com/?cid=14585071266200613601",
-    "google_rating": 4.6,
-    "google_review_count": 42
+    "google_rating": null,
+    "google_review_count": 0
   },
   {
     "id": "BIZ-PGL-023",
@@ -596,15 +596,15 @@ export const SPOTS_DATA: (Business & { placeId: string; mapsUrl: string })[] = [
     "tanggal_input": "2026-09-01",
     "tanggal_verifikasi": "2026-09-02",
     "diverifikasi_oleh": "Admin Kelurahan Penggilingan",
-    "rating_avg": 4.8,
-    "review_count": 15,
+    "rating_avg": null,
+    "review_count": 0,
     "growth_score": 77,
     "view_count": 321,
     "google_place_id": "ChIJb6mYQdGMaS4RLD_Un1H5RcA",
     "placeId": "ChIJb6mYQdGMaS4RLD_Un1H5RcA",
     "mapsUrl": "https://maps.google.com/?cid=13854753957644353324",
-    "google_rating": 4.8,
-    "google_review_count": 15
+    "google_rating": null,
+    "google_review_count": 0
   },
   {
     "id": "BIZ-PGL-024",
@@ -626,15 +626,15 @@ export const SPOTS_DATA: (Business & { placeId: string; mapsUrl: string })[] = [
     "tanggal_input": "2026-09-01",
     "tanggal_verifikasi": "2026-09-02",
     "diverifikasi_oleh": "Admin Kelurahan Penggilingan",
-    "rating_avg": 4.5,
-    "review_count": 28,
+    "rating_avg": null,
+    "review_count": 0,
     "growth_score": 88,
     "view_count": 350,
     "google_place_id": "ChIJb6mYQdGMaS4Rx6lcUnlUoBo",
     "placeId": "ChIJb6mYQdGMaS4Rx6lcUnlUoBo",
     "mapsUrl": "https://maps.google.com/?cid=1918626321309411783",
-    "google_rating": 4.5,
-    "google_review_count": 28
+    "google_rating": null,
+    "google_review_count": 0
   },
   {
     "id": "BIZ-PGL-025",
@@ -656,15 +656,15 @@ export const SPOTS_DATA: (Business & { placeId: string; mapsUrl: string })[] = [
     "tanggal_input": "2026-09-01",
     "tanggal_verifikasi": "2026-09-02",
     "diverifikasi_oleh": "Admin Kelurahan Penggilingan",
-    "rating_avg": 4.7,
-    "review_count": 41,
+    "rating_avg": null,
+    "review_count": 0,
     "growth_score": 76,
     "view_count": 379,
     "google_place_id": "ChIJb6mYQdGMaS4RHHYN73A3K8k",
     "placeId": "ChIJb6mYQdGMaS4RHHYN73A3K8k",
     "mapsUrl": "https://maps.google.com/?cid=14495740783808575004",
-    "google_rating": 4.7,
-    "google_review_count": 41
+    "google_rating": null,
+    "google_review_count": 0
   },
   {
     "id": "BIZ-PGL-026",
@@ -686,15 +686,15 @@ export const SPOTS_DATA: (Business & { placeId: string; mapsUrl: string })[] = [
     "tanggal_input": "2026-09-01",
     "tanggal_verifikasi": "2026-09-02",
     "diverifikasi_oleh": "Admin Kelurahan Penggilingan",
-    "rating_avg": 4.9,
-    "review_count": 14,
+    "rating_avg": null,
+    "review_count": 0,
     "growth_score": 87,
     "view_count": 408,
     "google_place_id": "ChIJb6mYQdGMaS4RPXE7xkhixuA",
     "placeId": "ChIJb6mYQdGMaS4RPXE7xkhixuA",
     "mapsUrl": "https://maps.google.com/?cid=16196741174587519293",
-    "google_rating": 4.9,
-    "google_review_count": 14
+    "google_rating": null,
+    "google_review_count": 0
   },
   {
     "id": "BIZ-PGL-027",
@@ -716,15 +716,15 @@ export const SPOTS_DATA: (Business & { placeId: string; mapsUrl: string })[] = [
     "tanggal_input": "2026-09-01",
     "tanggal_verifikasi": "2026-09-02",
     "diverifikasi_oleh": "Admin Kelurahan Penggilingan",
-    "rating_avg": 4.6,
-    "review_count": 27,
+    "rating_avg": null,
+    "review_count": 0,
     "growth_score": 75,
     "view_count": 437,
     "google_place_id": "ChIJb6mYQdGMaS4R4YMMgUPX8MI",
     "placeId": "ChIJb6mYQdGMaS4R4YMMgUPX8MI",
     "mapsUrl": "https://maps.google.com/?cid=14046963922696438753",
-    "google_rating": 4.6,
-    "google_review_count": 27
+    "google_rating": null,
+    "google_review_count": 0
   },
   {
     "id": "BIZ-PGL-028",
@@ -746,15 +746,15 @@ export const SPOTS_DATA: (Business & { placeId: string; mapsUrl: string })[] = [
     "tanggal_input": "2026-09-01",
     "tanggal_verifikasi": "2026-09-02",
     "diverifikasi_oleh": "Admin Kelurahan Penggilingan",
-    "rating_avg": 4.8,
-    "review_count": 40,
+    "rating_avg": null,
+    "review_count": 0,
     "growth_score": 86,
     "view_count": 466,
     "google_place_id": "ChIJb6mYQdGMaS4RFy-_lt6ivv4",
     "placeId": "ChIJb6mYQdGMaS4RFy-_lt6ivv4",
     "mapsUrl": "https://maps.google.com/?cid=18356288208104271639",
-    "google_rating": 4.8,
-    "google_review_count": 40
+    "google_rating": null,
+    "google_review_count": 0
   },
   {
     "id": "BIZ-PGL-029",
@@ -776,15 +776,15 @@ export const SPOTS_DATA: (Business & { placeId: string; mapsUrl: string })[] = [
     "tanggal_input": "2026-09-01",
     "tanggal_verifikasi": "2026-09-02",
     "diverifikasi_oleh": "Admin Kelurahan Penggilingan",
-    "rating_avg": 4.5,
-    "review_count": 13,
+    "rating_avg": null,
+    "review_count": 0,
     "growth_score": 97,
     "view_count": 145,
     "google_place_id": "ChIJb6mYQdGMaS4RYFZ_gvfHQNk",
     "placeId": "ChIJb6mYQdGMaS4RYFZ_gvfHQNk",
     "mapsUrl": "https://maps.google.com/?cid=15654732170600076896",
-    "google_rating": 4.5,
-    "google_review_count": 13
+    "google_rating": null,
+    "google_review_count": 0
   },
   {
     "id": "BIZ-PGL-030",
@@ -806,15 +806,15 @@ export const SPOTS_DATA: (Business & { placeId: string; mapsUrl: string })[] = [
     "tanggal_input": "2026-09-01",
     "tanggal_verifikasi": "2026-09-02",
     "diverifikasi_oleh": "Admin Kelurahan Penggilingan",
-    "rating_avg": 4.7,
-    "review_count": 26,
+    "rating_avg": null,
+    "review_count": 0,
     "growth_score": 85,
     "view_count": 174,
     "google_place_id": "ChIJb6mYQdGMaS4R7ilXh5td2fc",
     "placeId": "ChIJb6mYQdGMaS4R7ilXh5td2fc",
     "mapsUrl": "https://maps.google.com/?cid=17859408719886363118",
-    "google_rating": 4.7,
-    "google_review_count": 26
+    "google_rating": null,
+    "google_review_count": 0
   },
   {
     "id": "BIZ-PGL-101",
@@ -837,15 +837,15 @@ export const SPOTS_DATA: (Business & { placeId: string; mapsUrl: string })[] = [
     "tanggal_verifikasi": "2026-09-02",
     "diverifikasi_oleh": "Admin Kelurahan Penggilingan",
     "owner_id": "USR-OWNER-01",
-    "rating_avg": 4.9,
-    "review_count": 39,
+    "rating_avg": null,
+    "review_count": 0,
     "growth_score": 96,
     "view_count": 203,
     "google_place_id": "ChIJ_BIZ_PGL_101_Konveksi",
     "placeId": "ChIJ_BIZ_PGL_101_Konveksi",
     "mapsUrl": "https://maps.google.com/?q=-6.2060,106.9458",
-    "google_rating": 4.9,
-    "google_review_count": 39
+    "google_rating": null,
+    "google_review_count": 0
   },
   {
     "id": "BIZ-PGL-102",
@@ -867,15 +867,15 @@ export const SPOTS_DATA: (Business & { placeId: string; mapsUrl: string })[] = [
     "tanggal_input": "2026-09-01",
     "tanggal_verifikasi": "2026-09-02",
     "diverifikasi_oleh": "Admin Kelurahan Penggilingan",
-    "rating_avg": 4.6,
-    "review_count": 12,
+    "rating_avg": null,
+    "review_count": 0,
     "growth_score": 84,
     "view_count": 232,
     "google_place_id": "ChIJ_BIZ_PGL_102_WarungSe",
     "placeId": "ChIJ_BIZ_PGL_102_WarungSe",
     "mapsUrl": "https://maps.google.com/?q=-6.2088,106.9430",
-    "google_rating": 4.6,
-    "google_review_count": 12
+    "google_rating": null,
+    "google_review_count": 0
   },
   {
     "id": "BIZ-PGL-103",
@@ -897,15 +897,15 @@ export const SPOTS_DATA: (Business & { placeId: string; mapsUrl: string })[] = [
     "tanggal_input": "2026-09-01",
     "tanggal_verifikasi": "2026-09-02",
     "diverifikasi_oleh": "Admin Kelurahan Penggilingan",
-    "rating_avg": 4.8,
-    "review_count": 25,
+    "rating_avg": null,
+    "review_count": 0,
     "growth_score": 95,
     "view_count": 261,
     "google_place_id": "ChIJ_BIZ_PGL_103_BengkelO",
     "placeId": "ChIJ_BIZ_PGL_103_BengkelO",
     "mapsUrl": "https://maps.google.com/?q=-6.2120,106.9465",
-    "google_rating": 4.8,
-    "google_review_count": 25
+    "google_rating": null,
+    "google_review_count": 0
   }
 ];
 

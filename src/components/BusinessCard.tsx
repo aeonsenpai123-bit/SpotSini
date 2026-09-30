@@ -4,6 +4,8 @@ import { getBusinessWhatsAppUrl } from '../utils/whatsapp';
 import { getPrimaryImageForBusiness } from '../utils/imageService';
 import { Clock, Heart, MapPin, Navigation, Star } from 'lucide-react';
 
+import { usePlaceDetails } from '../services/placesService';
+
 interface BusinessCardProps {
   business: Business;
   isFavorite?: boolean;
@@ -21,6 +23,13 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({
   onOpenMap,
   className = ''
 }) => {
+  // Dynamically load real-time rating and reviews from Google Places API (New)
+  const activePlaceId = business.placeId || business.google_place_id;
+  const { data: placeData, loading: placeLoading } = usePlaceDetails(activePlaceId);
+
+  const displayRating = placeData?.rating ?? (business.google_rating && business.google_rating > 0 ? business.google_rating : null);
+  const displayReviewCount = placeData?.userRatingCount ?? (business.google_review_count && business.google_review_count > 0 ? business.google_review_count : 0);
+
   const whatsappUrl = business.no_telepon
     ? getBusinessWhatsAppUrl(business.no_telepon, business.nama_usaha)
     : '';
@@ -36,13 +45,6 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({
       : 'Belum tercatat';
 
   const isVerified = business.status_verifikasi === 'Terverifikasi';
-
-  const hasRating =
-    (business.google_rating && business.google_rating > 0) ||
-    (business.rating_avg && business.rating_avg > 0);
-
-  const ratingVal = business.google_rating || business.rating_avg || 0;
-  const reviewCount = business.google_review_count || business.review_count || 0;
 
   return (
     <div
@@ -120,18 +122,20 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({
 
           {/* Rating & Google Maps Reviews link */}
           <div className="flex items-center justify-between text-xs">
-            {hasRating ? (
+            {displayRating && displayRating > 0 ? (
               <span className="flex items-center gap-1 font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded">
                 <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
-                <span>{ratingVal.toFixed(1)}</span>
-                <span className="text-slate-400 font-normal">({reviewCount})</span>
+                <span>{displayRating.toFixed(1)}</span>
+                <span className="text-slate-400 font-normal">({displayReviewCount})</span>
               </span>
+            ) : placeLoading ? (
+              <span className="text-slate-400 text-[11px] animate-pulse">Memuat rating Maps...</span>
             ) : (
               <span className="text-slate-400 font-normal">Rating belum tersedia</span>
             )}
 
             <a
-              href={business.maps_url || '#'}
+              href={business.mapsUrl || business.maps_url || '#'}
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}

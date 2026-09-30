@@ -48,14 +48,14 @@ export interface Business {
   produk: string;
   sumber_data: DataSource;
   growth_score?: number; // 0 - 100%
-  rating_avg?: number; // 1.0 - 5.0
+  rating_avg?: number | null; // 1.0 - 5.0
   review_count?: number;
   view_count?: number;
   // Google Maps Integration fields (Task 3, 4, 9, 11)
   google_place_id?: string;
   placeId?: string;
   mapsUrl?: string;
-  google_rating?: number;
+  google_rating?: number | null;
   google_review_count?: number;
   google_reviews?: GooglePlaceReview[];
   tanggal_input: string;

@@ -100,32 +100,38 @@ export async function loadGoogleMaps(): Promise<typeof google | null> {
  */
 export const CACHED_GOOGLE_PLACES: Record<string, {
   place_id: string;
-  rating: number;
+  rating: number | null;
   review_count: number;
   reviews: GooglePlaceReview[];
 }> = {
   'BIZ-PGL-001': {
     place_id: 'ChIJ5_q818iMaS4RWbY9U3z9rXQ',
-    rating: 4.8,
-    review_count: 54,
+    rating: null,
+    review_count: 0,
     reviews: []
   },
   'BIZ-PGL-002': {
     place_id: 'ChIJb6mYQdGMaS4Ro8Z1xV-5W9Q',
-    rating: 4.9,
-    review_count: 142,
+    rating: null,
+    review_count: 0,
+    reviews: []
+  },
+  'BIZ-PGL-004': {
+    place_id: 'ChIJ4QTsPgCLaS4RE923Axxel90',
+    rating: null,
+    review_count: 0,
     reviews: []
   },
   'BIZ-PGL-101': {
     place_id: 'ChIJV4l7tNCNaS4RUf6M8u7z8NQ',
-    rating: 4.9,
-    review_count: 88,
+    rating: null,
+    review_count: 0,
     reviews: []
   },
   'BIZ-PGL-010': {
     place_id: 'ChIJyQ643tOMaS4Rc0c3s4fV6o0',
-    rating: 4.7,
-    review_count: 67,
+    rating: null,
+    review_count: 0,
     reviews: []
   }
 };
@@ -136,14 +142,14 @@ export const CACHED_GOOGLE_PLACES: Record<string, {
  */
 export function getGooglePlaceDetails(biz: Business): {
   placeId: string;
-  rating: number;
+  rating: number | null;
   reviewCount: number;
   reviews: GooglePlaceReview[];
 } {
   const cached = CACHED_GOOGLE_PLACES[biz.id];
-  const placeId = biz.google_place_id || cached?.place_id || getDefaultGooglePlaceId();
-  const rating = biz.google_rating || cached?.rating || biz.rating_avg || 4.9;
-  const reviewCount = biz.google_review_count || cached?.review_count || (biz.review_count ? biz.review_count * 3 : 142);
+  const placeId = biz.placeId || biz.google_place_id || cached?.place_id || getDefaultGooglePlaceId();
+  const rating = biz.google_rating ?? cached?.rating ?? biz.rating_avg ?? null;
+  const reviewCount = biz.google_review_count ?? cached?.review_count ?? (biz.review_count ? biz.review_count : 0);
 
   return {
     placeId,
@@ -155,7 +161,7 @@ export function getGooglePlaceDetails(biz: Business): {
 
 export interface GooglePlacesNewResult {
   placeId: string;
-  rating: number;
+  rating: number | null;
   reviewCount: number;
   reviews: GooglePlaceReview[];
   isLive: boolean;
@@ -178,11 +184,16 @@ export async function fetchGooglePlacesApiNew(
   let bizObject: Business | null = null;
 
   if (typeof bizOrPlaceId === 'string') {
-    targetPlaceId = bizOrPlaceId.trim() || envPlaceId;
+    targetPlaceId = bizOrPlaceId.trim();
   } else {
     bizObject = bizOrPlaceId;
+    targetPlaceId = bizOrPlaceId.placeId?.trim() || bizOrPlaceId.google_place_id?.trim() || '';
+  }
+
+  // Fallback to env place ID only if business has no specific place ID
+  if (!targetPlaceId) {
     const envCustomId = (import.meta as any).env?.VITE_GOOGLE_PLACE_ID?.trim();
-    targetPlaceId = envCustomId || bizOrPlaceId.google_place_id?.trim() || envPlaceId;
+    targetPlaceId = envCustomId || envPlaceId;
   }
 
   const apiKey = getGooglePlacesApiKey();
@@ -202,10 +213,12 @@ export async function fetchGooglePlacesApiNew(
 
       if (response.ok) {
         const data = await response.json();
-        const rating = typeof data.rating === 'number' ? data.rating : 4.9;
+        const rating = typeof data.rating === 'number'
+          ? data.rating
+          : (typeof data.rating === 'string' ? parseFloat(data.rating) : null);
         const reviewCount = typeof data.userRatingCount === 'number'
           ? data.userRatingCount
-          : (Array.isArray(data.reviews) ? data.reviews.length : 142);
+          : (Array.isArray(data.reviews) ? data.reviews.length : 0);
 
         // Map array ulasan asli dari response Google (response.reviews)
         const rawReviews = Array.isArray(data.reviews) ? data.reviews : [];
@@ -227,7 +240,7 @@ export async function fetchGooglePlacesApiNew(
           userReview = reviews.find(r => isAuthorNameMatch(r.authorAttribution?.displayName || r.author_name, currentUserName)) || null;
         }
 
-        console.log(`🗺️ [Google Places API New] Live reviews retrieved for ${targetPlaceId}: ⭐ ${rating} (${reviewCount} total reviews, ${reviews.length} actual items)`);
+        console.log(`🗺️ [Google Places API New] Live reviews retrieved for ${targetPlaceId}: ⭐ ${rating ?? '-'} (${reviewCount} total reviews, ${reviews.length} actual items)`);
 
         return {
           placeId: targetPlaceId,
@@ -251,8 +264,8 @@ export async function fetchGooglePlacesApiNew(
   // Returns zero mock reviews - empty array!
   const fallbackDetails = bizObject ? getGooglePlaceDetails(bizObject) : null;
   const fallbackPlaceId = targetPlaceId || fallbackDetails?.placeId || envPlaceId;
-  const fallbackRating = fallbackDetails?.rating || 4.9;
-  const fallbackCount = fallbackDetails?.reviewCount || 142;
+  const fallbackRating = fallbackDetails?.rating ?? (bizObject?.google_rating ?? null);
+  const fallbackCount = fallbackDetails?.reviewCount ?? (bizObject?.google_review_count ?? 0);
 
   return {
     placeId: fallbackPlaceId,
@@ -322,32 +335,32 @@ export const SAMPLE_PENGGILINGAN_PLACES: PlaceAutocompleteResult[] = [
     latitude: -6.2085,
     longitude: 106.9412,
     google_place_id: 'ChIJb6mYQdGMaS4Ro8Z1xV-5W9Q',
-    google_rating: 4.9,
-    google_review_count: 142
+    google_rating: undefined,
+    google_review_count: 0
   },
   {
     formatted_address: 'Jl. Raya Penggilingan No. 14, RW 07, Penggilingan, Kec. Cakung, Jakarta Timur',
     latitude: -6.2060,
     longitude: 106.9458,
     google_place_id: 'ChIJV4l7tNCNaS4RUf6M8u7z8NQ',
-    google_rating: 4.8,
-    google_review_count: 88
+    google_rating: undefined,
+    google_review_count: 0
   },
   {
     formatted_address: 'Jl. Komarudin I No. 45, RW 05, Penggilingan, Cakung, Jakarta Timur',
     latitude: -6.2105,
     longitude: 106.9380,
     google_place_id: 'ChIJyQ643tOMaS4Rc0c3s4fV6o0',
-    google_rating: 4.7,
-    google_review_count: 67
+    google_rating: undefined,
+    google_review_count: 0
   },
   {
     formatted_address: 'Jl. Sentra Primer Baru Timur, RW 08, Penggilingan, Jakarta Timur',
     latitude: -6.2130,
     longitude: 106.9490,
     google_place_id: 'ChIJ5_q818iMaS4RWbY9U3z9rXQ',
-    google_rating: 4.8,
-    google_review_count: 54
+    google_rating: undefined,
+    google_review_count: 0
   }
 ];
 

@@ -308,6 +308,19 @@ export function claimGoogleReviewReward(params: {
       } catch (e) {
         // Non-blocking
       }
+
+      try {
+        await (supabase.from('review_rewards').insert({
+          user_id: params.userId,
+          business_id: params.businessId,
+          business_name: params.businessName,
+          author_name: params.authorName,
+          points: points,
+          created_at: new Date().toISOString()
+        }) as unknown as Promise<any>);
+      } catch (e) {
+        // Non-blocking
+      }
     })();
   }
 

@@ -43,8 +43,8 @@ export const BusinessDetailModal: React.FC<BusinessDetailModalProps> = ({
   const [activeImageIndex, setActiveImageIndex] = useState<number>(0);
 
   // Real-time rating & Google Places API (New) sync state
-  const [liveRating, setLiveRating] = useState<number>(4.8);
-  const [liveReviewCount, setLiveReviewCount] = useState<number>(54);
+  const [liveRating, setLiveRating] = useState<number | null>(null);
+  const [liveReviewCount, setLiveReviewCount] = useState<number>(0);
   const [googleReviews, setGoogleReviews] = useState<GooglePlaceReview[]>([]);
   const [isLoadingGoogleReviews, setIsLoadingGoogleReviews] = useState<boolean>(true);
   const [isLiveApi, setIsLiveApi] = useState<boolean>(false);
@@ -93,7 +93,7 @@ export const BusinessDetailModal: React.FC<BusinessDetailModalProps> = ({
           setLiveRating(payload.rating);
           setLiveReviewCount(payload.reviewCount);
           setSyncToast({
-            text: `⚡ Rating diperbarui via Realtime: ⭐ ${payload.rating.toFixed(1)}`,
+            text: `⚡ Rating diperbarui via Realtime: ⭐ ${typeof payload.rating === 'number' ? payload.rating.toFixed(1) : '-'}`,
             type: 'info'
           });
           setTimeout(() => setSyncToast(null), 3000);
@@ -133,7 +133,7 @@ export const BusinessDetailModal: React.FC<BusinessDetailModalProps> = ({
       broadcastRealtimeEvent({
         type: 'RATING_UPDATED',
         placeId: business.id,
-        rating: res.rating,
+        rating: res.rating ?? 0,
         reviewCount: res.reviewCount,
         timestamp: new Date().toISOString()
       });
@@ -194,7 +194,7 @@ export const BusinessDetailModal: React.FC<BusinessDetailModalProps> = ({
             });
           } else if (claimResult.isAlreadyClaimed) {
             setSyncToast({
-              text: `⭐ Rating disinkronkan: ${res.rating.toFixed(1)} (${res.reviewCount} ulasan). Ulasan akun Google "${authorDisplayName}" terverifikasi (Reward sudah pernah diklaim).`,
+              text: `⭐ Rating disinkronkan: ${res.rating !== null ? res.rating.toFixed(1) : '-'} (${res.reviewCount} ulasan). Ulasan akun Google "${authorDisplayName}" terverifikasi (Reward sudah pernah diklaim).`,
               type: 'info'
             });
           }
@@ -206,7 +206,7 @@ export const BusinessDetailModal: React.FC<BusinessDetailModalProps> = ({
         }
       } else {
         setSyncToast({
-          text: `✅ Berhasil disinkronkan langsung dari Google Maps: ⭐ ${res.rating.toFixed(1)} (${res.reviewCount} ulasan publik, ${res.reviews.length} ulasan ditampilkan).`,
+          text: `✅ Berhasil disinkronkan langsung dari Google Maps: ⭐ ${res.rating !== null ? res.rating.toFixed(1) : '-'} (${res.reviewCount} ulasan publik, ${res.reviews.length} ulasan ditampilkan).`,
           type: 'success'
         });
       }
@@ -351,11 +351,11 @@ export const BusinessDetailModal: React.FC<BusinessDetailModalProps> = ({
                 <span>{business.sektor_usaha} • {business.rw} ({business.rt})</span>
               </span>
 
-              {/* Rating pill: ⭐⭐ 4.8 Google Maps (54) */}
+              {/* Rating pill: ⭐ 5.0 Google Maps (9) */}
               <div className="flex items-center gap-2">
                 <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-300 px-3 py-1 rounded-xl text-xs font-extrabold text-amber-900 shadow-xs">
-                  <span className="text-amber-500">⭐⭐</span>
-                  <span>{liveRating.toFixed(1)} Google Maps</span>
+                  <span className="text-amber-500">⭐</span>
+                  <span>{liveRating !== null && liveRating !== undefined ? `${liveRating.toFixed(1)} Google Maps` : 'Google Maps'}</span>
                   <span className="text-slate-500 font-normal">({liveReviewCount})</span>
                 </div>
               </div>
@@ -487,7 +487,7 @@ export const BusinessDetailModal: React.FC<BusinessDetailModalProps> = ({
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-500">
-                    Berdasarkan {liveReviewCount} ulasan publik terverifikasi di Google Maps
+                    {liveReviewCount > 0 ? `Berdasarkan ${liveReviewCount} ulasan publik terverifikasi di Google Maps` : 'Belum ada ulasan publik terverifikasi di Google Maps'}
                   </p>
                 </div>
               </div>
@@ -505,7 +505,9 @@ export const BusinessDetailModal: React.FC<BusinessDetailModalProps> = ({
                 </button>
 
                 <div className="text-right">
-                  <span className="text-lg font-black text-amber-600">⭐ {liveRating.toFixed(1)}</span>
+                  <span className="text-lg font-black text-amber-600">
+                    {liveRating !== null && liveRating !== undefined ? `⭐ ${liveRating.toFixed(1)}` : '⭐ -'}
+                  </span>
                   <span className="text-[10px] text-slate-400 block">/ 5.0 Google</span>
                 </div>
               </div>
