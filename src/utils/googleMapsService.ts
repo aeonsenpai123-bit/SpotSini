@@ -209,6 +209,7 @@ export async function fetchGooglePlacesApiNew(
     spotName,
     spotLat,
     spotLng,
+    spotId: bizObject?.id,
     forceRefresh
   });
 

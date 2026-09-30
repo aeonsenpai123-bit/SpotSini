@@ -243,17 +243,21 @@ export interface ClaimGoogleReviewRewardResult {
 
 /**
  * Claims reward points for a verified Google Maps review matching the user's name
- * Awards +50 points, registers PointTransaction, and prevents double claiming.
+ * Awards +50 points, registers PointTransaction, and records claim to public.review_rewards.
  */
 export function claimGoogleReviewReward(params: {
   userId: string;
   userName: string;
   businessId: string;
+  placeId?: string;
   businessName: string;
   authorName: string;
+  rating?: number;
+  reviewText?: string;
   points?: number;
 }): ClaimGoogleReviewRewardResult {
   const points = params.points || 50;
+  const targetPlaceId = params.placeId || params.businessId;
   const claimKey = `spotsini_claimed_gmap_rev_${params.userId}_${params.businessId}`;
   const alreadyClaimedAt = localStorage.getItem(claimKey);
 
@@ -284,7 +288,7 @@ export function claimGoogleReviewReward(params: {
   // 3. Mark as claimed in storage
   localStorage.setItem(claimKey, new Date().toISOString());
 
-  // 4. Asynchronously sync to Supabase public.profiles and public.point_transactions
+  // 4. Asynchronously sync to Supabase public.profiles, point_transactions, and review_rewards
   if (updatedUser) {
     (async () => {
       try {
@@ -312,9 +316,13 @@ export function claimGoogleReviewReward(params: {
       try {
         await (supabase.from('review_rewards').insert({
           user_id: params.userId,
+          place_id: targetPlaceId,
           business_id: params.businessId,
           business_name: params.businessName,
           author_name: params.authorName,
+          rating: params.rating ?? 5,
+          review_text: params.reviewText || '',
+          points_awarded: points,
           points: points,
           created_at: new Date().toISOString()
         }) as unknown as Promise<any>);
@@ -328,7 +336,62 @@ export function claimGoogleReviewReward(params: {
     success: true,
     earnedPoints: points,
     isAlreadyClaimed: false,
-    message: `🎉 Selamat ${params.userName}! Ulasan Google Maps Anda terverifikasi. +${points} Poin Reward berhasil ditambahkan ke profil Anda!`,
+    message: `Ulasan Google Maps Anda terverifikasi! Anda mendapatkan ${points} poin.`,
     updatedUser,
   };
+}
+
+/**
+ * Async version of claimGoogleReviewReward that checks Supabase public.review_rewards first
+ */
+export async function claimGoogleReviewRewardAsync(params: {
+  userId: string;
+  userName: string;
+  businessId: string;
+  placeId?: string;
+  businessName: string;
+  authorName: string;
+  rating?: number;
+  reviewText?: string;
+  points?: number;
+}): Promise<ClaimGoogleReviewRewardResult> {
+  const points = params.points || 50;
+  const targetPlaceId = params.placeId || params.businessId;
+  const claimKey = `spotsini_claimed_gmap_rev_${params.userId}_${params.businessId}`;
+  const alreadyClaimedAt = localStorage.getItem(claimKey);
+
+  if (alreadyClaimedAt) {
+    return {
+      success: false,
+      earnedPoints: 0,
+      isAlreadyClaimed: true,
+      message: `Reward ulasan Google Maps untuk "${params.businessName}" sudah pernah diklaim sebelumnya.`,
+      updatedUser: null,
+    };
+  }
+
+  // 1. Check if already claimed in Supabase public.review_rewards
+  try {
+    const { data: existingClaims } = await (supabase
+      .from('review_rewards')
+      .select('id')
+      .eq('user_id', params.userId)
+      .or(`place_id.eq.${targetPlaceId},business_id.eq.${params.businessId}`)
+      .limit(1) as unknown as Promise<any>);
+
+    if (existingClaims && existingClaims.length > 0) {
+      localStorage.setItem(claimKey, new Date().toISOString());
+      return {
+        success: false,
+        earnedPoints: 0,
+        isAlreadyClaimed: true,
+        message: `Reward ulasan Google Maps untuk "${params.businessName}" sudah pernah diklaim sebelumnya.`,
+        updatedUser: null,
+      };
+    }
+  } catch (e) {
+    // Non-blocking fallback to local storage
+  }
+
+  return claimGoogleReviewReward(params);
 }

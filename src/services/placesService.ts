@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { GooglePlaceReview } from '../types/business';
+import { GooglePlaceReview, Business } from '../types/business';
 
 export interface GooglePlaceAuthorAttribution {
   displayName: string;
@@ -18,7 +18,7 @@ export interface GooglePlaceReviewDetail {
   rating: number;
   text?: GooglePlaceReviewText | string;
   originalText?: GooglePlaceReviewText | string;
-  authorAttribution: GooglePlaceAuthorAttribution;
+  authorAttribution?: GooglePlaceAuthorAttribution;
 }
 
 export interface GooglePlaceDetailsResult {
@@ -38,15 +38,17 @@ export interface FetchPlaceOptions {
   spotName?: string;
   spotLat?: number | null;
   spotLng?: number | null;
+  spotId?: string; // e.g. 'BIZ-PGL-001'
   forceRefresh?: boolean;
 }
 
-// In-memory cache for fast hot-lookups
+// In-memory cache for fast hot-lookups across tab/page navigation
 const memoryCache = new Map<string, { data: GooglePlaceDetailsResult; timestamp: number }>();
 const CACHE_TTL_MS = 1000 * 60 * 30; // 30 minutes cache
 
 /**
- * Gets the current active Google Places API Key
+ * Gets the active Google Places API Key
+ * Checks: 1) LocalStorage override 2) VITE_GOOGLE_PLACES_API_KEY 3) VITE_GOOGLE_MAPS_API_KEY
  */
 export function getGooglePlacesApiKey(): string {
   if (typeof window !== 'undefined') {
@@ -67,7 +69,7 @@ export function getGooglePlacesApiKey(): string {
  * Extracts author display name safely
  */
 export function getReviewAuthorName(review: GooglePlaceReviewDetail | any): string {
-  return review.authorAttribution?.displayName || review.author_name || 'Pengguna Google Maps';
+  return review.authorAttribution?.displayName || review.author_name || 'Pengguna Google';
 }
 
 /**
@@ -83,17 +85,22 @@ export function getReviewText(review: GooglePlaceReviewDetail | any): string {
 
 /**
  * Maps raw reviews from Google Places API (New) to standard GooglePlaceReview array
+ * Avatar: review.authorAttribution?.photoUri
+ * Nama Pengulas: review.authorAttribution?.displayName || 'Pengguna Google'
+ * Bintang Ulasan: review.rating
+ * Teks Komentar: review.text?.text || review.originalText?.text || ''
+ * Waktu: review.relativePublishTimeDescription
  */
 export function mapToGooglePlaceReviews(rawReviews: GooglePlaceReviewDetail[] | any[]): GooglePlaceReview[] {
   if (!Array.isArray(rawReviews)) return [];
   return rawReviews.map((r: any) => ({
-    author_name: r.authorAttribution?.displayName || r.author_name || 'Pengguna Google Maps',
+    author_name: r.authorAttribution?.displayName || r.author_name || 'Pengguna Google',
     rating: typeof r.rating === 'number' ? r.rating : 5,
     text: r.text?.text || (typeof r.text === 'string' ? r.text : '') || r.originalText?.text || '',
     relative_time_description: r.relativePublishTimeDescription || r.relative_time_description || 'Baru saja',
     profile_photo_url: r.authorAttribution?.photoUri || r.profile_photo_url || undefined,
     authorAttribution: r.authorAttribution ? {
-      displayName: r.authorAttribution.displayName,
+      displayName: r.authorAttribution.displayName || 'Pengguna Google',
       photoUri: r.authorAttribution.photoUri,
       uri: r.authorAttribution.uri
     } : undefined
@@ -130,17 +137,76 @@ export function isAuthorNameMatch(authorName: string, candidateNames: (string | 
 }
 
 /**
+ * Stores details in memory and sessionStorage by multiple identifiers (Place ID, Business ID, Query)
+ */
+function storeInCache(keys: (string | undefined | null)[], data: GooglePlaceDetailsResult): void {
+  const timestamp = Date.now();
+  for (const key of keys) {
+    if (!key) continue;
+    const clean = key.trim();
+    if (!clean) continue;
+
+    memoryCache.set(clean, { data, timestamp });
+
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+      try {
+        window.sessionStorage.setItem(`spotsini_place_${clean}`, JSON.stringify({ data, timestamp }));
+      } catch (e) {
+        // Non-blocking quota error
+      }
+    }
+  }
+}
+
+/**
+ * Looks up cached place details by any of the provided identifiers
+ */
+function lookupCache(keys: (string | undefined | null)[]): GooglePlaceDetailsResult | null {
+  for (const key of keys) {
+    if (!key) continue;
+    const clean = key.trim();
+    if (!clean) continue;
+
+    // 1. Check in-memory cache
+    if (memoryCache.has(clean)) {
+      const entry = memoryCache.get(clean)!;
+      if (Date.now() - entry.timestamp < CACHE_TTL_MS) {
+        return { ...entry.data, fromCache: true };
+      }
+    }
+
+    // 2. Check sessionStorage
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+      try {
+        const raw = window.sessionStorage.getItem(`spotsini_place_${clean}`);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && parsed.data && (Date.now() - (parsed.timestamp || 0) < CACHE_TTL_MS)) {
+            memoryCache.set(clean, { data: parsed.data, timestamp: parsed.timestamp || Date.now() });
+            return { ...parsed.data, fromCache: true };
+          }
+        }
+      } catch (e) {
+        // Non-blocking
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
  * Fallback search via places:searchText when Place ID returns 404 / NOT_FOUND
  * Endpoint: https://places.googleapis.com/v1/places:searchText
  * Method: POST
  * Headers: Content-Type: application/json, X-Goog-Api-Key, X-Goog-FieldMask: places.id,places.displayName,places.rating,places.userRatingCount,places.reviews
  */
 export async function searchPlaceByText(
-  spotName: string,
+  spotNameOrQuery: string,
   spotLat?: number | null,
   spotLng?: number | null
 ): Promise<GooglePlaceDetailsResult | null> {
-  if (!spotName || spotName.trim() === '') return null;
+  if (!spotNameOrQuery || spotNameOrQuery.trim() === '') return null;
 
   const apiKey = getGooglePlacesApiKey();
   if (!apiKey) {
@@ -148,8 +214,10 @@ export async function searchPlaceByText(
     return null;
   }
 
-  const cleanName = spotName.trim();
-  const textQuery = `${cleanName} Penggilingan Cakung Jakarta Timur`;
+  const clean = spotNameOrQuery.trim();
+  const textQuery = clean.toLowerCase().includes('penggilingan')
+    ? clean
+    : `${clean} Penggilingan Cakung Jakarta Timur`;
 
   // Use spot coordinates or fallback to center of Kelurahan Penggilingan
   const lat = typeof spotLat === 'number' && !isNaN(spotLat) ? spotLat : -6.2085;
@@ -169,7 +237,7 @@ export async function searchPlaceByText(
   };
 
   try {
-    console.log(`🔎 [placesService:searchText] Memulai fallback TextSearch untuk "${cleanName}"...`);
+    console.log(`🔎 [placesService:searchText] Melakukan pencarian searchText untuk query: "${textQuery}"...`);
     const response = await fetch('https://places.googleapis.com/v1/places:searchText', {
       method: 'POST',
       headers: {
@@ -188,7 +256,7 @@ export async function searchPlaceByText(
 
     const data = await response.json();
     if (!data.places || !Array.isArray(data.places) || data.places.length === 0) {
-      console.warn(`[placesService:searchText] Tidak ada tempat yang cocok untuk: "${textQuery}"`);
+      console.warn(`[placesService:searchText] Tidak ada tempat yang cocok untuk query: "${textQuery}"`);
       return null;
     }
 
@@ -207,7 +275,7 @@ export async function searchPlaceByText(
       resolvedViaSearchText: true
     };
 
-    console.log(`✅ [placesService:searchText] Ditemukan Place ID baru untuk "${cleanName}": ${result.id} | ⭐ ${result.rating ?? '-'} (${result.userRatingCount ?? 0} ulasan total, ${result.reviews.length} ulasan terisi)`);
+    console.log(`✅ [placesService:searchText] Berhasil menemukan tempat: ${result.id} | ⭐ ${result.rating ?? '-'} (${result.userRatingCount ?? 0} ulasan total, ${result.reviews.length} ulasan publik terisi)`);
 
     return result;
   } catch (err) {
@@ -217,55 +285,57 @@ export async function searchPlaceByText(
 }
 
 /**
- * Fetches Google Place Details (New) with intelligent 404 NOT_FOUND fallback to places:searchText.
+ * Reusable function to fetch Google Place Details (New) with intelligent 404/NOT_FOUND fallback to places:searchText
  * Endpoint: https://places.googleapis.com/v1/places/${placeId}
- * FieldMask: id,displayName,rating,userRatingCount,reviews.name,reviews.relativePublishTimeDescription,reviews.rating,reviews.text,reviews.authorAttribution
+ * Headers: Content-Type: application/json, X-Goog-Api-Key, X-Goog-FieldMask: id,displayName,rating,userRatingCount,reviews
+ * 
+ * Supports both signatures:
+ * - fetchPlaceDetails(placeId, fallbackQuery)
+ * - fetchPlaceDetails(placeId, options)
  */
 export async function fetchPlaceDetails(
   placeId?: string | null,
-  optionsOrForceRefresh?: FetchPlaceOptions | boolean
+  fallbackQueryOrOptions?: string | FetchPlaceOptions,
+  extraOptions?: FetchPlaceOptions
 ): Promise<GooglePlaceDetailsResult | null> {
-  const options: FetchPlaceOptions =
-    typeof optionsOrForceRefresh === 'boolean'
-      ? { forceRefresh: optionsOrForceRefresh }
-      : (optionsOrForceRefresh || {});
+  let fallbackQuery = '';
+  let options: FetchPlaceOptions = {};
+
+  if (typeof fallbackQueryOrOptions === 'string') {
+    fallbackQuery = fallbackQueryOrOptions.trim();
+    options = extraOptions || {};
+  } else if (fallbackQueryOrOptions && typeof fallbackQueryOrOptions === 'object') {
+    options = fallbackQueryOrOptions;
+    fallbackQuery = (options.spotName || '').trim();
+  }
 
   const cleanPlaceId = (placeId || '').trim();
   const forceRefresh = options.forceRefresh ?? false;
-  const spotName = options.spotName?.trim();
+  const spotId = options.spotId?.trim();
+  const spotName = options.spotName?.trim() || fallbackQuery;
+  const effectiveQuery = spotName ? (spotName.toLowerCase().includes('penggilingan') ? spotName : `${spotName} Penggilingan Cakung Jakarta Timur`) : '';
 
-  // If Place ID is empty, directly attempt searchText if spotName is provided
+  // Cache lookup keys
+  const cacheLookupKeys = [cleanPlaceId, spotId, effectiveQuery].filter(Boolean);
+
+  // 1. Check Cache (in-memory + sessionStorage)
+  if (!forceRefresh) {
+    const cached = lookupCache(cacheLookupKeys);
+    if (cached) {
+      return cached;
+    }
+  }
+
+  // 2. If Place ID is empty, directly perform searchText fallback
   if (!cleanPlaceId) {
-    if (spotName) {
-      return searchPlaceByText(spotName, options.spotLat, options.spotLng);
+    if (effectiveQuery) {
+      const searchResult = await searchPlaceByText(effectiveQuery, options.spotLat, options.spotLng);
+      if (searchResult) {
+        storeInCache([searchResult.id, spotId, effectiveQuery], searchResult);
+        return searchResult;
+      }
     }
     return null;
-  }
-
-  const cacheKey = `spotsini_place_${cleanPlaceId}`;
-
-  // 1. Check in-memory cache
-  if (!forceRefresh && memoryCache.has(cleanPlaceId)) {
-    const cached = memoryCache.get(cleanPlaceId)!;
-    if (Date.now() - cached.timestamp < CACHE_TTL_MS) {
-      return { ...cached.data, fromCache: true };
-    }
-  }
-
-  // 2. Check sessionStorage cache
-  if (!forceRefresh && typeof window !== 'undefined' && window.sessionStorage) {
-    try {
-      const raw = sessionStorage.getItem(cacheKey);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed && parsed.data) {
-          memoryCache.set(cleanPlaceId, { data: parsed.data, timestamp: parsed.timestamp || Date.now() });
-          return { ...parsed.data, fromCache: true };
-        }
-      }
-    } catch (e) {
-      // Non-blocking parse error
-    }
   }
 
   const apiKey = getGooglePlacesApiKey();
@@ -274,6 +344,7 @@ export async function fetchPlaceDetails(
     return null;
   }
 
+  // 3. Request Google Places API (New) Place Details
   try {
     const url = `https://places.googleapis.com/v1/places/${encodeURIComponent(cleanPlaceId)}`;
     const response = await fetch(url, {
@@ -281,30 +352,22 @@ export async function fetchPlaceDetails(
       headers: {
         'Content-Type': 'application/json',
         'X-Goog-Api-Key': apiKey,
-        'X-Goog-FieldMask': 'id,displayName,rating,userRatingCount,reviews.name,reviews.relativePublishTimeDescription,reviews.rating,reviews.text,reviews.authorAttribution'
+        'X-Goog-FieldMask': 'id,displayName,rating,userRatingCount,reviews'
       }
     });
 
-    // 3. Tangani Error 404 / NOT_FOUND Secara Cerdas:
+    // 4. Handle 404 / NOT_FOUND / Invalid Place ID with intelligent fallback
     if (!response.ok) {
       const errText = await response.text().catch(() => '');
       const isNotFound = response.status === 404 || errText.includes('NOT_FOUND') || errText.includes('no longer valid');
-      console.warn(`[placesService] Request failed with HTTP ${response.status} for ${cleanPlaceId}:`, errText.slice(0, 150));
+      console.warn(`[placesService] GET /places/${cleanPlaceId} failed with HTTP ${response.status}:`, errText.slice(0, 150));
 
-      // Jika 404 atau NOT_FOUND dan spotName ada, lakukan fallback otomatis ke places:searchText
-      if (isNotFound && spotName) {
-        console.log(`🔄 [placesService] Place ID "${cleanPlaceId}" tidak valid/404. Memulai fallback otomatis via places:searchText untuk "${spotName}"...`);
-        const searchResult = await searchPlaceByText(spotName, options.spotLat, options.spotLng);
+      if (isNotFound && effectiveQuery) {
+        console.log(`🔄 [placesService] Place ID "${cleanPlaceId}" tidak valid/404. Memulai fallback otomatis via places:searchText untuk "${effectiveQuery}"...`);
+        const searchResult = await searchPlaceByText(effectiveQuery, options.spotLat, options.spotLng);
         if (searchResult) {
-          // Cache under both the old invalid place ID and the newly found place ID
-          memoryCache.set(cleanPlaceId, { data: searchResult, timestamp: Date.now() });
-          memoryCache.set(searchResult.id, { data: searchResult, timestamp: Date.now() });
-          if (typeof window !== 'undefined' && window.sessionStorage) {
-            try {
-              sessionStorage.setItem(cacheKey, JSON.stringify({ data: searchResult, timestamp: Date.now() }));
-              sessionStorage.setItem(`spotsini_place_${searchResult.id}`, JSON.stringify({ data: searchResult, timestamp: Date.now() }));
-            } catch (e) {}
-          }
+          // Cache under old Place ID, new Place ID, spotId, and query
+          storeInCache([cleanPlaceId, searchResult.id, spotId, effectiveQuery], searchResult);
           return searchResult;
         }
       }
@@ -325,45 +388,50 @@ export async function fetchPlaceDetails(
       fromCache: false
     };
 
-    // Save to memory cache
-    memoryCache.set(cleanPlaceId, { data: result, timestamp: Date.now() });
-
-    // Save to sessionStorage cache
-    if (typeof window !== 'undefined' && window.sessionStorage) {
-      try {
-        sessionStorage.setItem(cacheKey, JSON.stringify({
-          data: result,
-          timestamp: Date.now()
-        }));
-      } catch (e) {
-        // Quota exceeded in sessionStorage
-      }
-    }
+    // Save to cache
+    storeInCache([cleanPlaceId, result.id, spotId, effectiveQuery], result);
 
     return result;
   } catch (err) {
     console.warn(`[placesService] Network error fetching ${cleanPlaceId}:`, err);
-    if (spotName) {
-      console.log(`🔄 [placesService] Network error pada Place ID. Mencoba fallback searchText untuk "${spotName}"...`);
-      return searchPlaceByText(spotName, options.spotLat, options.spotLng);
+    if (effectiveQuery) {
+      console.log(`🔄 [placesService] Network error pada Place ID. Mencoba fallback searchText untuk "${effectiveQuery}"...`);
+      const searchResult = await searchPlaceByText(effectiveQuery, options.spotLat, options.spotLng);
+      if (searchResult) {
+        storeInCache([cleanPlaceId, searchResult.id, spotId, effectiveQuery], searchResult);
+        return searchResult;
+      }
     }
     return null;
   }
 }
 
 /**
- * React hook to fetch and cache Google Place Details for catalog cards & components
+ * Universal React Hook to fetch and cache Google Place Details for catalog cards & components
+ * Accepts either:
+ * - usePlaceDetails(business)
+ * - usePlaceDetails(placeId, fallbackQuery, spotLat, spotLng, spotId)
  */
 export function usePlaceDetails(
-  placeId?: string | null,
-  spotName?: string,
+  placeIdOrBusiness?: string | Business | null,
+  fallbackQuery?: string,
   spotLat?: number | null,
-  spotLng?: number | null
+  spotLng?: number | null,
+  spotId?: string
 ): {
   data: GooglePlaceDetailsResult | null;
   loading: boolean;
   refresh: () => void;
 } {
+  const isBusinessObj = typeof placeIdOrBusiness === 'object' && placeIdOrBusiness !== null;
+  const activePlaceId = isBusinessObj ? (placeIdOrBusiness.placeId || placeIdOrBusiness.google_place_id || '') : (placeIdOrBusiness || '');
+  const activeQuery = isBusinessObj
+    ? `${placeIdOrBusiness.nama_usaha} Penggilingan Cakung Jakarta Timur`
+    : (fallbackQuery || '');
+  const activeLat = isBusinessObj ? placeIdOrBusiness.latitude : spotLat;
+  const activeLng = isBusinessObj ? placeIdOrBusiness.longitude : spotLng;
+  const activeSpotId = isBusinessObj ? placeIdOrBusiness.id : spotId;
+
   const [data, setData] = useState<GooglePlaceDetailsResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [tick, setTick] = useState(0);
@@ -371,7 +439,7 @@ export function usePlaceDetails(
   const refresh = () => setTick(t => t + 1);
 
   useEffect(() => {
-    if (!placeId && !spotName) {
+    if (!activePlaceId && !activeQuery) {
       setData(null);
       return;
     }
@@ -379,10 +447,11 @@ export function usePlaceDetails(
     let isMounted = true;
     setLoading(true);
 
-    fetchPlaceDetails(placeId, {
-      spotName,
-      spotLat,
-      spotLng,
+    fetchPlaceDetails(activePlaceId, {
+      spotName: activeQuery,
+      spotLat: activeLat,
+      spotLng: activeLng,
+      spotId: activeSpotId,
       forceRefresh: tick > 0
     }).then((res) => {
       if (isMounted) {
@@ -396,7 +465,7 @@ export function usePlaceDetails(
     return () => {
       isMounted = false;
     };
-  }, [placeId, spotName, spotLat, spotLng, tick]);
+  }, [activePlaceId, activeQuery, activeLat, activeLng, activeSpotId, tick]);
 
   return { data, loading, refresh };
 }

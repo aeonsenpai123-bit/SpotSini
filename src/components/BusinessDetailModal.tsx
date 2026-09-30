@@ -9,7 +9,7 @@ import {
   fetchGooglePlacesApiNew, 
   isAuthorNameMatch 
 } from '../utils/googleMapsService';
-import { claimGoogleReviewReward } from '../utils/rewardService';
+import { claimGoogleReviewReward, claimGoogleReviewRewardAsync } from '../utils/rewardService';
 import { broadcastRealtimeEvent, RealtimePayload, supabase } from '../utils/supabaseClient';
 import confetti from 'canvas-confetti';
 import { 
@@ -170,12 +170,15 @@ export const BusinessDetailModal: React.FC<BusinessDetailModalProps> = ({
         const authorDisplayName = matchedReview.authorAttribution?.displayName || matchedReview.author_name;
 
         if (currentUser) {
-          const claimResult = claimGoogleReviewReward({
+          const claimResult = await claimGoogleReviewRewardAsync({
             userId: currentUser.id,
             userName: currentUser.name,
             businessId: business.id,
+            placeId: res.placeId || business.placeId || business.google_place_id,
             businessName: business.nama_usaha,
             authorName: authorDisplayName,
+            rating: matchedReview.rating,
+            reviewText: matchedReview.text,
             points: 50
           });
 
@@ -189,7 +192,7 @@ export const BusinessDetailModal: React.FC<BusinessDetailModalProps> = ({
               onUserUpdated(claimResult.updatedUser);
             }
             setSyncToast({
-              text: `🎉 Ulasan dari akun Google "${authorDisplayName}" terdeteksi! +50 Poin Reward berhasil ditambahkan ke profil Anda dan dicatat ke Supabase.`,
+              text: `🎉 Ulasan Google Maps Anda terverifikasi! Anda mendapatkan 50 poin.`,
               type: 'reward'
             });
           } else if (claimResult.isAlreadyClaimed) {
@@ -200,15 +203,24 @@ export const BusinessDetailModal: React.FC<BusinessDetailModalProps> = ({
           }
         } else {
           setSyncToast({
-            text: `⭐ Ulasan Google Maps "${authorDisplayName}" terdeteksi! Silakan masuk ke akun Anda untuk mengklaim +50 Poin Reward.`,
+            text: `⭐ Ulasan Google Maps "${authorDisplayName}" terdeteksi! Silakan masuk ke akun Anda untuk mengklaim 50 Poin Reward.`,
             type: 'info'
           });
         }
       } else {
-        setSyncToast({
-          text: `✅ Berhasil disinkronkan langsung dari Google Maps: ⭐ ${res.rating !== null ? res.rating.toFixed(1) : '-'} (${res.reviewCount} ulasan publik, ${res.reviews.length} ulasan ditampilkan).`,
-          type: 'success'
-        });
+        // Jika belum ada ulasan dari akun tersebut, tampilkan pesan informatif untuk mengulas di Maps terlebih dahulu
+        const userDisplayName = candidateNames[0] || currentUser?.name || 'Anda';
+        if (currentUser) {
+          setSyncToast({
+            text: `⭐ Rating tersinkronkan: ${res.rating !== null ? res.rating.toFixed(1) : '-'} (${res.reviewCount} ulasan). Belum terdeteksi ulasan dari akun Google "${userDisplayName}" untuk tempat ini. Tulis ulasan di Google Maps terlebih dahulu, lalu klik tombol ini untuk klaim 50 poin!`,
+            type: 'info'
+          });
+        } else {
+          setSyncToast({
+            text: `✅ Berhasil disinkronkan langsung dari Google Maps: ⭐ ${res.rating !== null ? res.rating.toFixed(1) : '-'} (${res.reviewCount} ulasan publik). Masuk dengan akun Google untuk klaim 50 poin reward dari ulasan Anda.`,
+            type: 'success'
+          });
+        }
       }
     } catch (err) {
       console.warn('Sync Google Places rating error:', err);

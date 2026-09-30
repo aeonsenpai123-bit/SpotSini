@@ -24,12 +24,13 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({
   className = ''
 }) => {
   // Dynamically load real-time rating and reviews from Google Places API (New)
-  const activePlaceId = business.placeId || business.google_place_id;
+  const activePlaceId = business.placeId || business.google_place_id || '';
   const { data: placeData, loading: placeLoading } = usePlaceDetails(
     activePlaceId,
-    business.nama_usaha,
+    `${business.nama_usaha} Penggilingan Cakung Jakarta Timur`,
     business.latitude,
-    business.longitude
+    business.longitude,
+    business.id
   );
 
   const displayRating = placeData?.rating ?? (business.google_rating && business.google_rating > 0 ? business.google_rating : null);
